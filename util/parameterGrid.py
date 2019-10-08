@@ -31,6 +31,15 @@ def get_parameters():
 # distributions for each hyperparameter.
 
 # Define the search space
+# In Bayesian optimization, this space has probability distributions
+# for each hyperparameter rather than discrete values.
+
+# create a wide domain space centered around the default values
+# and then refine it in subsequent searches
+# choice : categorical variables
+# quniform : discrete uniform (integers spaced evenly)
+# uniform: continuous uniform (floats spaced evenly)
+# loguniform: continuous log uniform (floats spaced evenly on a log scale)
 tpe_grid = {
     'class_weight': hp.choice('class_weight', [None, 'balanced']),
     'boosting_type': hp.choice('boosting_type',

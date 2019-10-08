@@ -11,6 +11,7 @@ from pathlib import Path
 import ast
 from sklearn.metrics import roc_auc_score
 
+import parameterGrid
 from util import readData
 from parameterGrid import get_tpe_parameter
 
@@ -41,6 +42,7 @@ def tpe_objective(params, n_folds=N_FOLDS):
     start = timer()
 
     # Perform n_folds cross validation
+    # Use early stopping and evalute based on ROC AUC
     cv_results = lgb.cv(params, train_set, num_boost_round=10000, nfold=n_folds,
                         early_stopping_rounds=100, metrics='auc', seed=50)
 
@@ -65,7 +67,7 @@ def tpe_objective(params, n_folds=N_FOLDS):
 
 # Tree Parzen Estimator (TPE) is a Bayesian Optimization
 def run_TPE(dataset):
-    params = get_tpe_parameter()
+    # params = get_tpe_parameter()
     train_features, test_features, train_label, test_label = readData.prepareData(dataset)
 
     global train_set
@@ -87,11 +89,15 @@ def run_TPE(dataset):
 
     # Global variable
     global ITERATION
-
     ITERATION = 0
 
     # Run optimization
-    best = fmin(fn=tpe_objective, space=params, algo=tpe.suggest,
+    # Each iteration, the algorithm chooses new hyperparameter values from the
+    # surrogate function which is constructed based on the previous results
+    # and evaluates these values in the objective function.
+    # This continues for MAX_EVALS evaluations of the objective function
+    # with the surrogate function continually updated with each new result.
+    best = fmin(fn=tpe_objective, space=parameterGrid.tpe_grid, algo=tpe.suggest,
                 max_evals=MAX_EVALS, trials=bayes_trials, rstate=np.random.RandomState(50))
 
     # # Sort the trials with lowest loss (highest AUC) first
@@ -105,6 +111,8 @@ def run_TPE(dataset):
     results.reset_index(inplace=True, drop=True)
 
     # Extract the ideal number of estimators and hyperparameters
+    # use the number of estimators that returned the lowest loss
+    # in cross validation with early stopping
     best_bayes_estimators = int(results.loc[0, 'estimators'])
 
     # Convert from a string to a dictionary
@@ -120,3 +128,16 @@ def run_TPE(dataset):
     print('The best model from Bayes optimization scores {:.5f} AUC ROC on the test set.'.format(
         roc_auc_score(test_label, preds)))
     print('This was achieved after {} search iterations'.format(results.loc[0, 'iteration']))
+
+
+# Note:
+# The optimal hyperparameters are those that do best in cross validation and not necessarily
+# those that do best on the testing data. When we use cross validation, we hope that these
+# results generalize to the testing data.
+
+# Even using 10-fold cross-validation, the hyperparameter tuning overfits to the training data.
+# The best score from cross-validation is significantly higher than that on the testing data.
+
+# Random search may return better hyperparameters just by sheer luck (re-running the notebook
+# can change the results). Bayesian optimization is not guaranteed to find better hyperparameters
+# and can get stuck in a local minimum of the objective function.

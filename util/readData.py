@@ -8,7 +8,7 @@ def prepareData(dataset):
         data = pd.read_csv('./data/moodle-2_0_0-metrics.csv')
         y = data.IsVulnerable
         X = data.drop('IsVulnerable', axis=1)
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=30)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.25, random_state=30)
         train_features = np.array(X_train)
         test_features = np.array(X_test)
         train_label = y_train[:]
