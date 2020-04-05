@@ -12,28 +12,28 @@ from os import listdir
 from os.path import isfile, join
 
 
-def read(LOAD_DATA=False):
-    if LOAD_DATA:
+def read(load_data=False):
+    if load_data:
         print("Previous data not loaded. Attempt to read data ...")
         mypath = "../data/Drebin/feature_vectors"
         onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
 
         print("Reading csv file for ground truth ...")
         ground_truth = np.loadtxt("../data/Drebin/sha256_family.csv", delimiter=",", skiprows=1, dtype=str)
-        # print ground_truth.shape
-        # families = np.unique(ground_truth[:, 1])
-        # print families
-        # print len(families)
+        print("ground_truth shape:", ground_truth.shape)
+        families = np.unique(ground_truth[:, 1])
+        print(families)
+        print(len(families))
 
         print("Reading positive and negative texts ...")
         pos = []
         neg = []
         for virus in onlyfiles:
             if virus in ground_truth[:, 0]:
-                pos.append(virus)
+                pos.append(virus)  # 5560
             else:
-                if len(neg) < 5560:
-                    neg.append(virus)
+                # if len(neg) < 5560:
+                neg.append(virus)  # 123453
 
         print("Extracting features ...")
         x = []
@@ -57,6 +57,7 @@ def read(LOAD_DATA=False):
         y = np.array(y)
         print(x.shape, y.shape)
 
+        # store the input array in a disk file with npy extension
         print("Saving data under data_numpy directory ...")
         np.save("../data/Drebin/data_numpy/x_all.npy", x)
         np.save("../data/Drebin/data_numpy/y_all.npy", y)
@@ -129,4 +130,7 @@ def map_family_to_category(families):
 
 
 if __name__ == "__main__":
-    read_multiclass(load_data=True)
+    # read - malware vs non malware
+    # read_multiclass - family classification
+    # read_multiclass(load_data=True)
+    read(load_data=True)

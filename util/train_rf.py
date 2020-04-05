@@ -8,7 +8,7 @@ from sklearn.metrics import classification_report
 TUNING = False  # Set this to False if you don't want to tune
 
 print("Reading data ...")
-x_all, y_all = read.read(LOAD_DATA=False)
+x_all, y_all = read.read(load_data=False)
 x_train, x_test, y_train, y_test = train_test_split(x_all, y_all, test_size=0.3, random_state=42)
 print(x_train.shape, y_train.shape)
 print(x_test.shape, y_test.shape)
@@ -64,6 +64,8 @@ else:
                                      warm_start=False)
               ]
     for model in models:
+        print("----------model----------")
+        print(model)
         print("Fitting RF ...")
         model.fit(x_train, y_train)
 
@@ -75,6 +77,5 @@ else:
         print("Precision score is %f." % precision_score(y_test, y_pred))
         print("Recall score is %f." % recall_score(y_test, y_pred))
         print("F1 score is %f." % f1_score(y_test, y_pred))
-        print("-----------------------------------")
 
 
