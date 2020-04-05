@@ -4,6 +4,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, f1_score
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import classification_report
+import sklearn.metrics as metrics
+import matplotlib.pyplot as plt
+from sklearn.calibration import CalibratedClassifierCV
 
 TUNING = False  # Set this to False if you don't want to tune
 
@@ -47,7 +50,7 @@ if TUNING:
         print("")
 
 else:
-    models = [SVC(),
+    models = [SVC(probability=False),
               SVC(C=1000, cache_size=200, class_weight=None, coef0=0.0,
                   decision_function_shape='ovr', degree=3, gamma=0.01, kernel='rbf',
                   max_iter=-1, probability=False, random_state=None, shrinking=True,
@@ -56,16 +59,35 @@ else:
     for model in models:
         print("----------model----------")
         print(model)
+        clf = CalibratedClassifierCV(model)
+
         print("Fitting SVM ...")
-        model.fit(x_train, y_train)
+        clf.fit(x_train, y_train)
 
         print("Evaluating ...")
-        y_pred = model.predict(x_test)
+        y_pred = clf.predict(x_test)
 
         print("Accuracy is %f." % accuracy_score(y_test, y_pred))
         print(confusion_matrix(y_test, y_pred))
         print("Precision score is %f." % precision_score(y_test, y_pred))
         print("Recall score is %f." % recall_score(y_test, y_pred))
         print("F1 score is %f." % f1_score(y_test, y_pred))
+
+        # probability=True should be set, default is false
+        # another way is to use CalibratedClassifierCV
+        probs = clf.predict_proba(x_test)
+        preds = probs[:, 1]
+        fpr, tpr, threshold = metrics.roc_curve(y_test, preds)
+        roc_auc = metrics.auc(fpr, tpr)
+
+        plt.title('Receiver Operating Characteristic')
+        plt.plot(fpr, tpr, 'b', label='AUC = %0.2f' % roc_auc)
+        plt.legend(loc='lower right')
+        plt.plot([0, 1], [0, 1], 'r--')
+        plt.xlim([0, 1])
+        plt.ylim([0, 1])
+        plt.ylabel('True Positive Rate')
+        plt.xlabel('False Positive Rate')
+        plt.show()
 
 
