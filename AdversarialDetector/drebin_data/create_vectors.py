@@ -1,4 +1,5 @@
 import pickle as p
+import sys
 import os
 import numpy as np
 
@@ -14,11 +15,21 @@ num_total = 129013
 num_mal = len(mal_files)
 num_clean = num_total - num_mal
 
-# ben_matrix = np.zeros((num_clean, dim), dtype=np.int8)
-# mal_matrix = np.zeros((num_mal, dim), dtype=np.int8)
-
-ben_matrix = csr_matrix((num_clean, dim), dtype=np.int8)
-mal_matrix = csr_matrix((num_mal, dim), dtype=np.int8)
+# out of memory or cannot allocate large memory issue
+# in ubuntu, the default overcommit mode is 0
+# cat /proc/sys/vm/overcommit_memory
+# need to change to 1
+# sudo su
+# int root mode, echo 1 > /proc/sys/vm/overcommit_memory
+# now the overcommit mode is 1
+ben_matrix = np.zeros((num_clean, dim), dtype=np.int8)
+mal_matrix = np.zeros((num_mal, dim), dtype=np.int8)
+#
+# # ben_matrix = np.asarray(np.zeros((num_clean, dim), dtype=np.int8))
+# # mal_matrix = np.asarray(np.zeros((num_mal, dim), dtype=np.int8))
+#
+# ben_matrix = lil_matrix((num_clean, dim), dtype=np.int8)
+# mal_matrix = lil_matrix((num_mal, dim), dtype=np.int8)
 
 idx = 0
 # Get clean data first
