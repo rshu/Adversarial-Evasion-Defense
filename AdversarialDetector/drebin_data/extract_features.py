@@ -4,7 +4,7 @@ import pickle
 count = 0
 feat_set = dict()
 f_count = 0
-dir_ = './feature_vectors'
+dir_ = '../../data/Drebin/feature_vectors'
 
 for f in os.listdir(dir_):
     lines = [l for l in open(os.path.join(dir_, f), 'r')]

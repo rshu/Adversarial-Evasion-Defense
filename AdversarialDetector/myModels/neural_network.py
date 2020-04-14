@@ -1,11 +1,9 @@
-from __future__ import division
-from __future__ import print_function
-
-import sys, os
+import sys
 
 sys.path.append('../')
+
 from attacks import *
-from util import hessian_vector_product
+from myModels.myUtils import hessian_vector_product
 
 import tensorflow as tf
 from keras.datasets import cifar10, mnist
@@ -119,8 +117,6 @@ class NeuralNetwork(object):
             self.input_channels = 1
             self.input_dim = self.input_side * self.input_side * self.input_channels
 
-
-
         elif dataset == 'drebin':
             X_train, Y_train, X_val, Y_val, X_test, Y_test = self.load_drebin_data()
 
@@ -183,7 +179,7 @@ class NeuralNetwork(object):
 
         return X_train, Y_train, X_val, Y_val, X_test, Y_test
 
-    def load_drebin_data(self, ben_path='../data/ben_matrix.npy', mal_path='../data/mal_matrix.npy'):
+    def load_drebin_data(self, ben_path='../drebin_data/ben_matrix.npy', mal_path='../drebin_data/mal_matrix.npy'):
         ben_data = np.load(ben_path)
         mal_data = np.load(mal_path)
 
@@ -268,7 +264,7 @@ class NeuralNetwork(object):
             v_ = np.concatenate((v_, np.reshape(v[j], (layer_size))), axis=0)
 
         if (np.linalg.norm(v_)) == 0.0:
-            print('Error: Loss was 0.0 at test point %d' % test_idx)
+            # print('Error: Loss was 0.0 at test point %d' % test_idx)
             return
 
         inverse_hvp = self.get_inverse_hvp_lissa(v)
