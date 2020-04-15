@@ -2,13 +2,18 @@ from tensorflow.python.client import device_lib
 import numpy as np
 import gc, sys
 from keras.utils import np_utils
+from os import path
+
+if (path.exists("./X_write.npy")):
+    print("yes")
+sys.exit(-1)
 
 # print(device_lib.list_local_devices())
 # X = np.concatenate((ben_data, mal_data), axis=0)
 # X = np.append(ben_data,mal_data, axis=0)
 
-ben_path = './ben_matrix.npy'
-mal_path = './mal_matrix.npy'
+ben_path = '../drebin_data/ben_matrix.npy'
+mal_path = '../drebin_data/mal_matrix.npy'
 
 ben_data = np.load(ben_path, mmap_mode='r+')
 mal_data = np.load(mal_path, mmap_mode='r+')

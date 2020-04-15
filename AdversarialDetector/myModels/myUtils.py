@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 from tensorflow import gradients
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops, math_ops
-import tensorflow as tf
+# import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def hessian_vector_product(ys, xs, v):

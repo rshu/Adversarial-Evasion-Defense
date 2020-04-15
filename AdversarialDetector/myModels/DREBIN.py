@@ -2,7 +2,9 @@ import sys, os
 
 sys.path.append('../')
 
-import tensorflow as tf
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+import tensorflow.compat.v1 as tf
+# import tensorflow as tf
 import numpy as np
 import gc
 from sklearn import linear_model
@@ -13,7 +15,7 @@ from fcc import FCC
 from myUtils import avg_l2_dist, preds_to_labels, normalize, norms_and_cos, get_test_from_train_idx, comp_cos, \
     comp_norm, greater_cos, smaller_norm, cos_and_norm_sep
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+
 
 # Seed used for all calculations of training and test point indices
 SEED = 17
@@ -29,10 +31,13 @@ model_save_path = '../trained_models/' + model_name + '-model.json'
 weights_save_path = '../trained_models/' + model_name + 'weights'
 model = FCC(model_name=model_name, dataset='drebin', seed=SEED)
 print('Total Model Params: %d' % model.num_params)
-model.load_model(model_save_path, weights_save_path)
+
+# if mode exists
+# model.load_model(model_save_path, weights_save_path)
 # epochs = 10
-# model.train(epochs=epochs)
-# model.save_model(model_save_path, weights_save_path)
+epochs = 1
+model.train(epochs=epochs)
+model.save_model(model_save_path, weights_save_path)
 
 # Model Accuracy
 print('Model Accuracy: %.5f' % (model.model.evaluate(model.test_data, model.test_labels)[1]))
@@ -118,6 +123,10 @@ print('FGSM: %.5f' % (avg_l2_dist(reg_data[fgsm_idx], fgsm_data_fil)))
 print('BIM-A: %.5f' % (avg_l2_dist(reg_data[bim_a_idx], bim_a_data_fil)))
 print('BIM-B: %.5f' % (avg_l2_dist(reg_data[bim_b_idx], bim_b_data_fil)))
 print('JSMA: %.5f' % (avg_l2_dist(reg_data[jsma_idx], jsma_data_fil)))
+
+# ================================================================
+# code could run until here
+
 
 # Get cosine similarity and norms
 grads_train = model.get_gradients_wrt_params(train_data, train_data_labels)

@@ -1,4 +1,6 @@
-import tensorflow as tf
+# import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.compat.v1.disable_eager_execution()
 from tensorflow import gradients
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops, math_ops

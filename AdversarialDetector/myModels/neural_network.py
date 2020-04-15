@@ -5,17 +5,19 @@ sys.path.append('../')
 from attacks import *
 from myModels.myUtils import hessian_vector_product
 
-import tensorflow as tf
+# import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from keras.datasets import cifar10, mnist
 from cleverhans.utils_keras import KerasModelWrapper
 from cleverhans.attacks import CarliniWagnerL2, BasicIterativeMethod, DeepFool, SaliencyMapMethod
 
 import numpy as np
 import os, time, math, gc
-from keras import backend as K
+# from keras import backend as K
+import tensorflow.python.keras.backend as K
 from keras.models import Sequential
 from keras.utils import np_utils
-
+from os import path
 
 class NeuralNetwork(object):
     """General Neural Network Class for multi-class classification """
@@ -158,38 +160,80 @@ class NeuralNetwork(object):
             self.input_channels = 3
             self.input_dim = self.input_side * self.input_side * self.input_channels
 
+        # normalization cause memory error
         # Normalize data
-        X_train = X_train.astype('float32')
-        X_test = X_test.astype('float32')
-        X_train /= 255
-        X_test /= 255
+        # X_train = X_train.astype('float32')
+        # X_test = X_test.astype('float32')
+        # X_train /= 255
+        # X_test /= 255
 
         num_val = int(X_test.shape[0] / 2.0)
 
-        # Get validation sets as well
-        val_indices = np.random.choice(range(X_test.shape[0]), num_val)
-        X_val = X_test[val_indices]
-        Y_val = Y_test[val_indices]
-
-        mask = np.ones(X_test.shape[0], dtype=bool)
-        mask[val_indices] = False
-
-        X_test = X_test[mask]
-        Y_test = Y_test[mask]
+        # # Get validation sets as well
+        # val_indices = np.random.choice(range(X_test.shape[0]), num_val)
+        # X_val = X_test[val_indices]
+        # Y_val = Y_test[val_indices]
+        #
+        # mask = np.ones(X_test.shape[0], dtype=bool)
+        # mask[val_indices] = False
+        #
+        # X_test = X_test[mask]
+        # Y_test = Y_test[mask]
 
         return X_train, Y_train, X_val, Y_val, X_test, Y_test
 
     def load_drebin_data(self, ben_path='../drebin_data/ben_matrix.npy', mal_path='../drebin_data/mal_matrix.npy'):
-        ben_data = np.load(ben_path)
-        mal_data = np.load(mal_path)
+        ben_data = np.load(ben_path, mmap_mode='r+')
+        mal_data = np.load(mal_path, mmap_mode='r+')
 
         ben_lab = np.zeros((ben_data.shape[0]), dtype=np.int8)
         mal_lab = np.ones((mal_data.shape[0]), dtype=np.int8)
         ben_lab = np_utils.to_categorical(ben_lab, 2)
         mal_lab = np_utils.to_categorical(mal_lab, 2)
 
-        X = np.concatenate((ben_data, mal_data), axis=0)
-        Y = np.concatenate((ben_lab, mal_lab), axis=0)
+        # failed this step, take too much memory
+        # X = np.concatenate((ben_data, mal_data), axis=0)
+        # Y = np.concatenate((ben_lab, mal_lab), axis=0)
+
+        # replace begin ==========================================================
+        ben_row_len = ben_data.shape[0]
+        mal_row_len = mal_data.shape[0]
+        row_len = ben_row_len + mal_row_len
+        col_len = ben_data.shape[1]
+
+        # if file exits, read directly
+        X = np.memmap('./X_write.npy', dtype=np.int8, mode='r+', shape=(row_len, col_len))
+        Y = np.memmap('./Y_write.npy', dtype=np.int8, mode='r+',
+                      shape=(ben_lab.shape[0] + mal_lab.shape[0], ben_lab.shape[1]))
+        # X_write = np.zeros((row_len, col_len), dtype=np.int8)
+        # np.save('X_write', X_write)
+        # X = np.memmap('./X_write.npy', dtype=np.int8, mode='r+', shape=(row_len, col_len))
+        #
+        # for i in range(ben_row_len):
+        #     X[i] = ben_data[i]
+        #
+        # X.flush()
+        #
+        # for j in range(mal_row_len):
+        #     X[ben_row_len + j] = mal_data[j]
+        #
+        # X.flush()
+
+        # Y_write = np.zeros((ben_lab.shape[0] + mal_lab.shape[0], ben_lab.shape[1]), dtype=np.int8)
+        # np.save('Y_write', Y_write)
+        # Y = np.memmap('./Y_write.npy', dtype=np.int8, mode='r+',
+        #               shape=(ben_lab.shape[0] + mal_lab.shape[0], ben_lab.shape[1]))
+        #
+        # for i in range(ben_lab.shape[0]):
+        #     Y[i] = ben_lab[i]
+        #
+        # Y.flush()
+        #
+        # for j in range(mal_lab.shape[0]):
+        #     Y[ben_lab.shape[0] + j] = mal_lab[j]
+        #
+        # Y.flush()
+        # replace end ==========================================================
         del ben_data, mal_data, ben_lab, mal_lab
         gc.collect()
 
@@ -199,9 +243,10 @@ class NeuralNetwork(object):
         num_test = int(.05 * num_samples)
         num_train = num_samples - num_val - num_test
 
-        reshuffle_idx = np.random.choice(range(X.shape[0]), num_samples, replace=False)
-        X = X[reshuffle_idx]
-        Y = Y[reshuffle_idx]
+        # shuffle index, cause code exits
+        # reshuffle_idx = np.random.choice(range(X.shape[0]), num_samples, replace=False)
+        # X = X[reshuffle_idx]
+        # Y = Y[reshuffle_idx]
 
         X_train = X[:num_train]
         Y_train = Y[:num_train]
