@@ -92,13 +92,13 @@ def load_dataset(train_dataset_path, test_dataset_path):
     print(crafted_flag)
     assert len(crafted_flag) == 11
 
-    train_dummy_cols = unique_protocal + unique_service + unique_flag
+    train_dummy_cols = crafted_protocal + crafted_service + crafted_flag
     print(train_dummy_cols)
     assert len(train_dummy_cols) == 84
 
     unique_service_test = sorted(df_test['service'].unique())
     crafted_service_test = ['service_' + x for x in unique_service_test]
-    test_dummy_cols = unique_protocal + unique_service_test + unique_flag
+    test_dummy_cols = crafted_protocal + crafted_service_test + crafted_flag
     assert len(test_dummy_cols) == 78
 
     df_train_categorical_value_encode = df_train_categorical_values.apply(LabelEncoder().fit_transform)
