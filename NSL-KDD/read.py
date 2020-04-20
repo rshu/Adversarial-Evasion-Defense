@@ -40,8 +40,8 @@ def load_dataset(train_dataset_path, test_dataset_path):
     print('Dimensions of the Training set:', df_train.shape)
     print('Dimensions of the Test set:', df_test.shape)
 
-    print(df_train.head(5))
-    print(df_train.describe())
+    # print(df_train.head(5))
+    # print(df_train.describe())
 
     print('Label distribution Training set:')
     print(df_train['class'].value_counts())
@@ -151,14 +151,18 @@ def nn_model(X_train, y_train, X_test, y_test):
     sess = tf.compat.v1.Session(config=config)
     tf.compat.v1.keras.backend.set_session(sess)
 
+    # dropout to avoid overfitting
     layers = [
         Dense(122, input_shape=(122,)),
         Activation('relu'),
         Dropout(0.5),
-        Dense(128),
+        Dense(64),
         Activation('relu'),
         Dropout(0.5),
         Dense(64),
+        Activation('relu'),
+        Dropout(0.5),
+        Dense(32),
         Activation('relu'),
         Dropout(0.5),
         Dense(1),
@@ -180,7 +184,7 @@ def nn_model(X_train, y_train, X_test, y_test):
                        loss='binary_crossentropy',
                        metrics=['accuracy'])
 
-    classifier.fit(X_train, y_train, batch_size=64, epochs=5)
+    classifier.fit(X_train, y_train, batch_size=16, epochs=10)
 
     # save the model
     nn_model_pickel_file = 'nn_model.pkl'
@@ -204,11 +208,20 @@ if __name__ == "__main__":
     test_path = os.path.join("../data/NSL-KDD", "KDDTest+.csv")
 
     df_train, df_test = load_dataset(train_path, test_path)
+    print(df_train.shape)
+    print(df_test.shape)
 
     X_train = df_train.drop(['class'], axis=1)
     y_train = df_train['class']
     X_test = df_test.drop(['class'], axis=1)
     y_test = df_test['class']
+
+    # pre-processing
+    scaler1 = preprocessing.StandardScaler().fit(X_train)
+    X_train = scaler1.transform(X_train)
+
+    scaler5 = preprocessing.StandardScaler().fit(X_test)
+    X_test = scaler5.transform(X_test)
 
     nn_model(X_train, y_train, X_test, y_test)
 
