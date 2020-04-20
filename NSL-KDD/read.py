@@ -2,7 +2,21 @@ import os, sys, sklearn
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, f1_score
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import classification_report
+from sklearn import preprocessing
+from sklearn.feature_selection import SelectPercentile, f_classif
 import pprint as pprint
+import sklearn.metrics as metrics
+import matplotlib.pyplot as plt
+import tensorflow as tf
+import keras
+from keras.layers import Input, Dense, Dropout, Activation
+import pickle
 
 col_names = ["duration", "protocol_type", "service", "flag", "src_bytes", "dst_bytes", "land", "wrong_fragment",
              "urgent", "hot", "num_failed_logins", "logged_in", "num_compromised", "root_shell", "su_attempted",
@@ -131,13 +145,96 @@ def load_dataset(train_dataset_path, test_dataset_path):
 
     return new_df_train, new_df_test
 
+
+def nn_model(X_train, y_train, X_test, y_test):
+    config = tf.compat.v1.ConfigProto(device_count={'GPU': 1, 'CPU': 8})
+    sess = tf.compat.v1.Session(config=config)
+    tf.compat.v1.keras.backend.set_session(sess)
+
+    layers = [
+        Dense(122, input_shape=(122,)),
+        Activation('relu'),
+        Dropout(0.5),
+        Dense(128),
+        Activation('relu'),
+        Dropout(0.5),
+        Dense(64),
+        Activation('relu'),
+        Dropout(0.5),
+        Dense(1),
+        Activation('sigmoid')
+    ]
+
+    classifier = keras.Sequential()
+    for layer in layers:
+        classifier.add(layer)
+
+    # classifier = keras.Sequential([
+    #     keras.layers.Dense(122, activation=tf.nn.relu, input_shape=(122,)),
+    #     keras.layers.Dense(64, activation=tf.nn.relu),
+    #     keras.layers.Dense(32, activation=tf.nn.relu),
+    #     keras.layers.Dense(1, activation=tf.nn.sigmoid),
+    # ])
+
+    classifier.compile(optimizer='adam',
+                       loss='binary_crossentropy',
+                       metrics=['accuracy'])
+
+    classifier.fit(X_train, y_train, batch_size=64, epochs=5)
+
+    # save the model
+    nn_model_pickel_file = 'nn_model.pkl'
+    pickle.dump(classifier, open(nn_model_pickel_file, 'wb'))
+
+    # load the model from disk
+    loaded_model = pickle.load(open(nn_model_pickel_file, 'rb'))
+
+    print("evaluation...")
+    print("")
+    print(loaded_model.evaluate(X_test, y_test, verbose=2))
+
+
 if __name__ == "__main__":
     print(pd.__version__)
     print(np.__version__)
     print(sys.version)
     print(sklearn.__version__)
 
-    train_dataset_path = os.path.join("../data/NSL-KDD", "KDDTrain+.csv")
-    test_dataset_path = os.path.join("../data/NSL-KDD", "KDDTest+.csv")
+    train_path = os.path.join("../data/NSL-KDD", "KDDTrain+.csv")
+    test_path = os.path.join("../data/NSL-KDD", "KDDTest+.csv")
 
-    load_dataset(train_dataset_path, test_dataset_path)
+    df_train, df_test = load_dataset(train_path, test_path)
+
+    X_train = df_train.drop(['class'], axis=1)
+    y_train = df_train['class']
+    X_test = df_test.drop(['class'], axis=1)
+    y_test = df_test['class']
+
+    nn_model(X_train, y_train, X_test, y_test)
+
+    # clf = RandomForestClassifier()
+    # clf = SVC()
+    # clf.fit(X_train, y_train)
+    # y_pred = clf.predict(X_test)
+    #
+    # print("Accuracy is %f." % accuracy_score(y_test, y_pred))
+    # print(confusion_matrix(y_test, y_pred))
+    # print("Precision score is %f." % precision_score(y_test, y_pred))
+    # print("Recall score is %f." % recall_score(y_test, y_pred))
+    # print("F1 score is %f." % f1_score(y_test, y_pred))
+    #
+    # # probability=True should be set, default is false
+    # probs = clf.predict_proba(X_test)
+    # preds = probs[:, 1]
+    # fpr, tpr, threshold = metrics.roc_curve(y_test, preds)
+    # roc_auc = metrics.auc(fpr, tpr)
+    #
+    # plt.title('Receiver Operating Characteristic')
+    # plt.plot(fpr, tpr, 'b', label='AUC = %0.2f' % roc_auc)
+    # plt.legend(loc='lower right')
+    # plt.plot([0, 1], [0, 1], 'r--')
+    # plt.xlim([0, 1])
+    # plt.ylim([0, 1])
+    # plt.ylabel('True Positive Rate')
+    # plt.xlabel('False Positive Rate')
+    # plt.show()
