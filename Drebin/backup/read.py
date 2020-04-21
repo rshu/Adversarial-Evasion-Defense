@@ -7,7 +7,7 @@ Inside each function, customize your data path
 """
 import numpy as np
 import sys
-from Drebin import feature_extraction
+from backup import feature_extraction
 from os import listdir
 from os.path import isfile, join
 
@@ -59,14 +59,14 @@ def read(load_data=False):
 
         # store the input array in a disk file with npy extension
         print("Saving data under data_numpy directory ...")
-        np.save("../data/Drebin/data_numpy/x_all.npy", x)
-        np.save("../data/Drebin/data_numpy/y_all.npy", y)
+        np.save("../../data/Drebin/data_numpy/x_all.npy", x)
+        np.save("../../data/Drebin/data_numpy/y_all.npy", y)
 
         return x, y
     else:
         print("Loading previous data ...")
-        x_ = np.load("../data/Drebin/data_numpy/x_all.npy")
-        y_ = np.load("../data/Drebin/data_numpy/y_all.npy")
+        x_ = np.load("../../data/Drebin/data_numpy/x_all.npy")
+        y_ = np.load("../../data/Drebin/data_numpy/y_all.npy")
         print(x_.shape, y_.shape)
         # print x == x_, y == y_
         return x_, y_
@@ -107,14 +107,14 @@ def read_multiclass(load_data=False):
         print(x.shape, y.shape)
 
         print("Saving data under data_numpy directory ...")
-        np.save("../data/Drebin/data_numpy/x_multi_all.npy", x)
-        np.save("../data/Drebin/data_numpy/y_multi_all.npy", y)
+        np.save("../../data/Drebin/data_numpy/x_multi_all.npy", x)
+        np.save("../../data/Drebin/data_numpy/y_multi_all.npy", y)
 
         return x, y
     else:
         print("Loading previous data ...")
-        x_ = np.load("../data/Drebin/data_numpy/x_multi_all.npy")
-        y_ = np.load("../data/Drebin/data_numpy/y_multi_all.npy")
+        x_ = np.load("../../data/Drebin/data_numpy/x_multi_all.npy")
+        y_ = np.load("../../data/Drebin/data_numpy/y_multi_all.npy")
         print(x_.shape, y_.shape)
 
         return x_, y_

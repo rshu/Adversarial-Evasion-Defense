@@ -1,18 +1,10 @@
-from Drebin import read
-from sklearn import linear_model
+from backup import read
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, f1_score
-from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import classification_report
 import keras
 from keras.wrappers.scikit_learn import KerasClassifier
 from sklearn.model_selection import GridSearchCV
 import tensorflow as tf
 from tensorflow.python.client import device_lib
-from keras import backend as K
-
-import sklearn.metrics as metrics
-import matplotlib.pyplot as plt
 
 print(device_lib.list_local_devices())
 
