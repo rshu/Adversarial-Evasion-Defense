@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
+
 def plot_correlation(data, method):
     fig, ax = plt.subplots(figsize=(60, 60))
     sns.set(font_scale=5)
@@ -28,10 +29,11 @@ def drop_lin_correlated(df_in, method):
 
     return df_out
 
+
 def plot_correlation_bivariate(df, fre1, fre2):
     ax = plt.subplot(111, xlabel=fre1, ylabel=fre2, title='Features correlation')
     for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] +
-                  ax.get_xticklabels() + ax.get_yticklabels()):
+                 ax.get_xticklabels() + ax.get_yticklabels()):
         item.set_fontsize(15)
     plt.scatter(df[fre1], df[fre2])
     plt.show()

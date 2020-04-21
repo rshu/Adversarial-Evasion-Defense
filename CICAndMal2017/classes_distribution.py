@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 
+
 def draw_pie_chart(df, fre):
     labels = df[fre].astype('category').cat.categories.tolist()
     counts = df[fre].value_counts()
@@ -10,6 +11,7 @@ def draw_pie_chart(df, fre):
     ax1.pie(sizes, labels=labels, autopct='%1.1f%%', shadow=True, radius=2000)
     ax1.axis('equal')
     plt.show()
+
 
 def plot_all_classes_distribution(df):
     plt.figure(figsize=(16, 8))
