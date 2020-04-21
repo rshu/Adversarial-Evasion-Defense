@@ -153,7 +153,7 @@ def nn_model(X_train, y_train, X_test, y_test):
 
     # dropout to avoid overfitting
     layers = [
-        Dense(122, input_shape=(122,)),
+        Dense(X_train.shape[1], input_shape=(X_train.shape[1],)),
         Activation('relu'),
         Dropout(0.5),
         Dense(64),
