@@ -18,7 +18,7 @@ def load_dataset(file_path):
     df = df.drop(['filename'], axis=1)
     df.columns = df.columns.str.lstrip()
 
-    print(df.shape) # (27205, 136)
+    print(df.shape)  # (27205, 136)
     print(df.dtypes)
     print(df.head())
     print(df.describe())
@@ -43,10 +43,11 @@ def load_dataset(file_path):
     print(df['pdfid_mismatch'].dtypes)
 
     df = df.drop_duplicates()
-    print(df.shape) # (22525, 136)
+    print(df.shape)  # (22525, 136)
 
     df.to_pickle("./saved_dataframe.pkl")
     return df
+
 
 def build_models(X_train, y_train, X_test, y_test):
     config = tf.compat.v1.ConfigProto(device_count={'GPU': 1, 'CPU': 8})
