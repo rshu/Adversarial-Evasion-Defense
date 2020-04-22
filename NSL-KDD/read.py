@@ -208,8 +208,10 @@ if __name__ == "__main__":
     test_path = os.path.join("../data/NSL-KDD", "KDDTest+.csv")
 
     df_train, df_test = load_dataset(train_path, test_path)
-    print(df_train.shape)
-    print(df_test.shape)
+    print("training data shape:", df_train.shape)
+    print("training data label shape: ", df_train['class'].value_counts())
+    print("testing data shape:", df_test.shape)
+    print("testing data label shape: ", df_test['class'].value_counts())
 
     X_train = df_train.drop(['class'], axis=1)
     y_train = df_train['class']

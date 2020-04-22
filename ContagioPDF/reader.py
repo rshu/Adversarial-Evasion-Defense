@@ -101,10 +101,17 @@ if __name__ == "__main__":
     else:
         df = load_dataset(file_path)
 
+    print(df.shape)
+    print(df['class'].value_counts())
+
     X = df.drop(['class'], axis=1)
     y = df['class']
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.2, random_state=42)
+
+    print(y_train.value_counts())
+    print(y_test.value_counts())
+
 
     scaler1 = preprocessing.StandardScaler().fit(X_train)
     X_train = scaler1.transform(X_train)

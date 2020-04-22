@@ -48,7 +48,7 @@ def load_dataset(file_path):
 
     # # print(df.dtypes())
 
-    # print(df.shape)
+    print(df.shape)
     # print(df.head())
     # print(df.describe())
     # # print(list(df.Label.unique()))
@@ -207,6 +207,8 @@ if __name__ == "__main__":
     else:
         df = load_dataset(file_path)
 
+    print(df.shape)
+    print(df['Label'].value_counts())
     # check Anderson-Darling test results
     # print(scipy.stats.anderson(df['Label'], dist='norm'))
 
@@ -248,6 +250,10 @@ if __name__ == "__main__":
     y = df['Label']
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.2, random_state=42)
+
+    print(y_train.value_counts())
+    print(y_test.value_counts())
+
     # pca = PCA(0.9899)
     # pca.fit(X_train)
     # X_train = pca.transform(X_train)
