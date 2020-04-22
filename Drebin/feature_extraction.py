@@ -346,16 +346,16 @@ left_set = {'service_receiver', 'permission', 'activity', 'real_permission', 'ur
 #
 # print(left_set)
 
-service_receiver_file = open('./service_receiver.txt', 'a')
-permission_file = open('./permission.txt', 'a')
-activity_file = open('./activity.txt', 'a')
-real_permission_file = open('./real_permission.txt', 'a')
-url_file = open('./url.txt', 'a')
-provider_file = open('./provider.txt', 'a')
-call_file = open('./call.txt', 'a')
-api_call_file = open('./api_call.txt', 'a')
-intent_file = open('./intent.txt', 'a')
-feature_file = open('./feature.txt', 'a')
+service_receiver_file = open('features/service_receiver.txt', 'a')
+permission_file = open('features/permission.txt', 'a')
+activity_file = open('features/activity.txt', 'a')
+real_permission_file = open('features/real_permission.txt', 'a')
+url_file = open('features/url.txt', 'a')
+provider_file = open('features/provider.txt', 'a')
+call_file = open('features/call.txt', 'a')
+api_call_file = open('features/api_call.txt', 'a')
+intent_file = open('features/intent.txt', 'a')
+feature_file = open('features/feature.txt', 'a')
 
 # for left in left_set:
 #     print(left)
