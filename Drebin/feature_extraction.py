@@ -31,6 +31,9 @@ def extract_features(dir_path):
                     features = eachLine.split('::')
                     # 545246 -> 542710 -> 535896 -> 532793 -> 532775
                     # -> 532730 -> 532559 -> 528196
+                    if features[0] == 'url':
+                        break
+
                     if not re.search('[a-zA-Z0-9]+', features[1]):  # remove lines with not letter or number
                         break
                     if features[1].endswith('/'):
@@ -55,6 +58,7 @@ def extract_features(dir_path):
                         f_count += 1
 
     print(f_count)  # 528196
+    # remove url -> 56400
 
     with open('./drebin_features.pkl', 'wb') as f:
         pickle.dump(feat_set, f, pickle.HIGHEST_PROTOCOL)
@@ -76,7 +80,8 @@ def create_vectors(ground_truth_path):
     print(count)  # 5560
 
     feat_dict = pickle.load(open('./drebin_features.pkl', 'rb'))
-    assert len(feat_dict) == 528196
+    # assert len(feat_dict) == 528196
+    assert len(feat_dict) == 56400
 
     feature_dimension = len(feat_dict)
 
@@ -102,8 +107,8 @@ def create_vectors(ground_truth_path):
                     if len(eachLine.split('::')) == 2:
                         features = eachLine.split('::')
 
-                        if not re.search('[a-zA-Z0-9]+', features[1]):  # remove lines with not letter or number
-                            break
+                        # if not re.search('[a-zA-Z0-9]+', features[1]):  # remove lines with not letter or number
+                        #     break
 
                         if features[1].endswith('/'):
                             features[1] = features[1][:-1]
@@ -125,7 +130,8 @@ def create_vectors(ground_truth_path):
                         # print(feat_dict[crafted_feature])
                         # ben_matrix[index_benign, feat_dict[crafted_feature]] = 1
                         # ben_matrix[index_benign, feature_dimension] = 0
-                        merged_matrix[total_index, feat_dict[crafted_feature]] = 1
+                        if crafted_feature in feat_dict:
+                            merged_matrix[total_index, feat_dict[crafted_feature]] = 1
                         merged_matrix[total_index, feature_dimension] = 0  # label
 
             # index_benign += 1
@@ -142,8 +148,8 @@ def create_vectors(ground_truth_path):
                 if len(eachLine.split('::')) == 2:
                     features = eachLine.split('::')
 
-                    if not re.search('[a-zA-Z0-9]+', features[1]):  # remove lines with not letter or number
-                        break
+                    # if not re.search('[a-zA-Z0-9]+', features[1]):  # remove lines with not letter or number
+                    #     break
 
                     if features[1].endswith('/'):
                         features[1] = features[1][:-1]
@@ -164,7 +170,8 @@ def create_vectors(ground_truth_path):
 
                     # mal_matrix[malware_index, feat_dict[crafted_feature]] = 1
                     # mal_matrix[malware_index, feature_dimension] = 1
-                    merged_matrix[total_index, feat_dict[crafted_feature]] = 1
+                    if crafted_feature in feat_dict:
+                        merged_matrix[total_index, feat_dict[crafted_feature]] = 1
                     merged_matrix[total_index, feature_dimension] = 1
         total_index += 1
 
@@ -205,6 +212,7 @@ def merge_matrix(benign_matrix_path, malware_matrix_path):
     merged.flush()
     print(merged.shape)
 
+
 def build_models(X_train, y_train, X_test, y_test):
     config = tf.compat.v1.ConfigProto(device_count={'GPU': 1, 'CPU': 8})
     sess = tf.compat.v1.Session(config=config)
@@ -212,7 +220,7 @@ def build_models(X_train, y_train, X_test, y_test):
 
     # dropout to avoid overfitting
     layers = [
-        Dense(X_train.shape[1], input_shape=(X_train.shape[1],)),
+        Dense(2056, input_shape=(56400,)),
         Activation('relu'),
         # Dropout(0.5),
         Dense(64),
@@ -235,7 +243,7 @@ def build_models(X_train, y_train, X_test, y_test):
     classifier.compile(optimizer='adam',
                        loss='binary_crossentropy',
                        metrics=['accuracy'])
-    classifier.fit(X_train, y_train, batch_size=32, epochs=10)
+    classifier.fit(X_train, y_train, batch_size=32, epochs=5)
 
     # save the model
     nn_model_pickel_file = 'saved_nn_model.pkl'
@@ -249,11 +257,24 @@ def build_models(X_train, y_train, X_test, y_test):
     print(classifier.evaluate(X_test, y_test, verbose=2))
 
 
+def shuffle(matrix, target, test_proportion):
+    ratio = int(matrix.shape[0] / test_proportion)  # should be int
+    X_train = matrix[ratio:, :]
+    X_test = matrix[:ratio, :]
+    Y_train = target[ratio:, :]
+    Y_test = target[:ratio, :]
+    return X_train, X_test, Y_train, Y_test
+
+
 def create_dataframe(merged_matrix_path):
-    merged_matrix = np.load(merged_matrix_path, mmap_mode='r+')
+    # merged_matrix = np.load(merged_matrix_path, mmap_mode='r+')
+    merged_matrix = np.load(merged_matrix_path)
     print(merged_matrix.shape)
     print(merged_matrix[:, -1])
     print(type(merged_matrix))
+
+    # X = merged_matrix[:, :-1]
+    # y = merged_matrix[:, -1]
 
     df = pd.DataFrame(merged_matrix)
     print(df.shape)
@@ -264,20 +285,24 @@ def create_dataframe(merged_matrix_path):
     print(X.shape)
     print(y.shape)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    # # X = X.reindex(np.random.permutation(X.index))
+    # np.random.shuffle(X)
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.2, random_state=42)
+    # X_train, X_test, y_train, y_test = shuffle(X, y, 5)  # 1/5
 
     print(y_train.value_counts())
     print(y_test.value_counts())
 
     # pass
 
-    scaler1 = preprocessing.Normalizer().fit(X_train)
-    X_train = scaler1.transform(X_train)
+    # scaler1 = preprocessing.Normalizer().fit(X_train)
+    # X_train = scaler1.transform(X_train)
+    #
+    # scaler5 = preprocessing.Normalizer().fit(X_test)
+    # X_test = scaler5.transform(X_test)
 
-    scaler5 = preprocessing.Normalizer().fit(X_test)
-    X_test = scaler5.transform(X_test)
-
-    build_models(X_train, y_train, X_test, y_test)
+    build_models(X_train, y_train, X_test, y_test) # [0.027439669568946747, 0.994535505771637]
 
 
 if __name__ == "__main__":
@@ -285,6 +310,17 @@ if __name__ == "__main__":
     # create_vectors(ground_truth_path)
     # merge_matrix(benign_matrix_path, malware_matrix_path)
     create_dataframe(merged_matrix_path)
+
+
+
+
+
+
+
+
+
+
+
 
 
 
