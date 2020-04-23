@@ -72,16 +72,16 @@ def build_models(X_train, y_train, X_test, y_test):
         Activation('sigmoid')
     ]
 
-    METRICS = [
-        keras.metrics.TruePositives(name='tp'),
-        keras.metrics.FalsePositives(name='fp'),
-        keras.metrics.TrueNegatives(name='tn'),
-        keras.metrics.FalseNegatives(name='fn'),
-        keras.metrics.BinaryAccuracy(name='accuracy'),
-        keras.metrics.Precision(name='precision'),
-        keras.metrics.Recall(name='recall'),
-        keras.metrics.AUC(name='auc'),
-    ]
+    # METRICS = [
+    #     keras.metrics.TruePositives(name='tp'),
+    #     keras.metrics.FalsePositives(name='fp'),
+    #     keras.metrics.TrueNegatives(name='tn'),
+    #     keras.metrics.FalseNegatives(name='fn'),
+    #     keras.metrics.BinaryAccuracy(name='accuracy'),
+    #     keras.metrics.Precision(name='precision'),
+    #     keras.metrics.Recall(name='recall'),
+    #     keras.metrics.AUC(name='auc'),
+    # ]
 
     classifier = keras.Sequential()
     for layer in layers:
@@ -89,7 +89,11 @@ def build_models(X_train, y_train, X_test, y_test):
 
     classifier.compile(optimizer='adam',
                        loss='binary_crossentropy',
-                       metrics=METRICS)
+                       metrics=['accuracy']
+                       # metrics=METRICS
+                       )
+
+    print(classifier.summary())
     classifier.fit(X_train, y_train, batch_size=32, epochs=10)
 
     # save the model
@@ -122,7 +126,6 @@ if __name__ == "__main__":
 
     print(y_train.value_counts())
     print(y_test.value_counts())
-
 
     scaler1 = preprocessing.StandardScaler().fit(X_train)
     X_train = scaler1.transform(X_train)
