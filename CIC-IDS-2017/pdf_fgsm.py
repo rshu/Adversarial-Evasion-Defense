@@ -69,8 +69,9 @@ else:
 
 # print(df)
 
-X = df.drop(['class'], axis=1)
-y = df['class']
+X = df.drop(['Label'], axis=1)
+print(X)
+y = df['Label']
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.2, random_state=42)
 
@@ -136,7 +137,7 @@ def create_model(X_train):
 model = create_model(X_train)
 print(model.summary())
 
-model.fit(X_train, y_train, batch_size=32, epochs=1)
+model.fit(X_train, y_train, batch_size=32, epochs=2)
 print("Base accuracy on regular images:", model.evaluate(x=X_test, y=y_test, verbose=0))
 
 X_train_first = X_train[0]
@@ -192,28 +193,28 @@ def generate_adversarials(batch_size):
             y_train_each = y_train[N]
             X_train_each = X_train[N]
 
-            X_train_each = X_train_each.reshape((1, 135))
+            X_train_each = X_train_each.reshape((1, 71))
             y_train_each = y_train_each.reshape((1, 1))
 
             perturbations = adversarial_pattern(X_train_each, y_train_each)
             sess = tf.compat.v1.keras.backend.get_session()
             perturbations_toarray = sess.run(perturbations)
 
-            epsilon = 0.5
+            epsilon = 0.4
             adversarial = X_train_each + perturbations_toarray * epsilon
 
             X.append(adversarial)
             y.append(y_train[N])
 
-        X = np.asarray(X).reshape((batch_size, 135))
+        X = np.asarray(X).reshape((batch_size, 71))
         y = np.asarray(y)
 
         yield X, y
 
 
 # Generate adversarial data
-x_adversarial_train, y_adversarial_train = next(generate_adversarials(200))
-x_adversarial_test, y_adversarial_test = next(generate_adversarials(100))
+# x_adversarial_train, y_adversarial_train = next(generate_adversarials(200))
+x_adversarial_test, y_adversarial_test = next(generate_adversarials(500))
 
 # Assess base model on adversarial data
 print("Base accuracy on adversarial images:", model.evaluate(x=x_adversarial_test, y=y_adversarial_test, verbose=0))
