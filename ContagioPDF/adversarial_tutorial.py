@@ -78,7 +78,7 @@ model.summary()
 
 model.fit(x_train, y_train,
           batch_size=32,
-          epochs=20,
+          epochs=1,
           validation_data=(x_test, y_test))
 
 # Assess base model accuracy on regular images
@@ -106,6 +106,7 @@ def generate_adversarials(batch_size):
         x = []
         y = []
         for batch in range(batch_size):
+            print("batch: ", batch)
             if batch_size > 10000 and batch % 1000 == 0:
                 print(batch / batch_size)
             N = random.randint(0, 100)

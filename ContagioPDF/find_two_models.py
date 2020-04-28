@@ -36,9 +36,9 @@ from timeit import default_timer as timer
 from hyperopt import STATUS_OK
 
 file_path = "../data/ContagioPDF/ConsolidateData.csv"
-out_file = './dl_trials.csv'
-MAX_EVALS = 500
-N_FOLDS = 10
+out_file = 'dl_trials_1.csv'
+MAX_EVALS = 50
+# N_FOLDS = 10
 # input_shape = 135
 
 def load_dataset(file_path):
@@ -171,6 +171,7 @@ def objective(params, ):
 
     start = timer()
     classifier = dnn_model(params, input_shape)
+    classifier.fit(X_train, y_train, batch_size=32, epochs=1)
     acc_results = classifier.evaluate(x=X_test, y=y_test, verbose=0)[5]
 
     run_time = timer() - start
@@ -206,6 +207,8 @@ space = {
     'drop_out': hp.quniform('drop_out', 0.0, 0.5, 0.1),
     'optimizer': hp.choice('optimizer', ['Adadelta', 'Adagrad', 'Adam', 'Adamax', 'NAdam', 'RMSprop', 'SGD'])
 }
+
+# batch_size, epochs
 
 if __name__ == "__main__":
 
@@ -248,6 +251,7 @@ if __name__ == "__main__":
     # creating model with original dataset
     input_shape = X_train.shape[1]
 
+    # using bayesian optimization
     sample_space = sample(space)
     print(sample_space)
 
@@ -283,66 +287,16 @@ if __name__ == "__main__":
     bayes_trials_results = sorted(bayes_trials.results, key=lambda x: x['loss'])
     print(bayes_trials_results[:2])
 
-    results = pd.read_csv('./dl_trials.csv')
+    results = pd.read_csv('dl_trials_1.csv')
 
     # Sort with best scores on top and reset index for slicing
     results.sort_values('loss', ascending=True, inplace=True)
     results.reset_index(inplace=True, drop=True)
     print(results.head())
 
-
-
-
-
-
-
-
-
-
-
-
-    sys.exit(-1)
-
-    if path.exists("saved_dataframe.pkl"):
-        df = pd.read_pickle("./saved_dataframe.pkl")
-    else:
-        df = load_dataset(file_path)
-
-    # print(df)
-
-    X = df.drop(['class'], axis=1)
-    y = df['class']
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.2, random_state=42)
-
-    print("Data shapes", X_train.shape, X_test.shape, y_train.shape, y_test.shape)
-    print("Data types", type(X_train), type(X_test), type(y_train), type(y_test))
-
-    X_train = X_train.to_numpy()
-    X_test = X_test.to_numpy()
-    y_train = y_train.to_numpy()
-    y_test = y_test.to_numpy()
-
-    print("Data shapes", X_train.shape, X_test.shape, y_train.shape, y_test.shape)
-    print("Data types", type(X_train), type(X_test), type(y_train), type(y_test))
-
-    # Pass -1 as the value, and NumPy will calculate this number for you.
-    y_train = y_train.reshape((-1, 1))
-    y_test = y_test.reshape((-1, 1))
-
-    # pre-processing
-    scaler1 = preprocessing.StandardScaler().fit(X_train)
-    X_train = scaler1.transform(X_train)
-
-    scaler2 = preprocessing.StandardScaler().fit(X_test)
-    X_test = scaler2.transform(X_test)
-
-    print("Data shapes", X_train.shape, X_test.shape, y_train.shape, y_test.shape)
-
-    # creating model with original dataset
-    input_shape = X_train.shape[1]
-    model = create_model(input_shape)
-    print(model.summary())
-
-    model.fit(X_train, y_train, batch_size=32, epochs=1)
-    print("Base accuracy on original dataset:", model.evaluate(x=X_test, y=y_test, verbose=0))
+    # without optimization
+    # model = create_model(input_shape)
+    # print(model.summary())
+    #
+    # model.fit(X_train, y_train, batch_size=32, epochs=1)
+    # print("Base accuracy on original dataset:", model.evaluate(x=X_test, y=y_test, verbose=0))
