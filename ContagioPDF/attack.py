@@ -1,34 +1,13 @@
-import pandas as pd
 import tensorflow as tf
-
-# # AttributeError: 'Tensor' object has no attribute 'numpy'
-# # input_shape = input_shape.numpy()
-# import tensorflow.compat.v1 as tf
-#
-# tf.compat.v1.disable_eager_execution()
-# # tf.executing_eagerly()
-# from tensorflow.python.framework import ops
-
 import keras
 from os import path
 import pickle, sys
-from keras.layers import Input, Dense, Dropout, Activation
+from keras.layers import Dense, Dropout, Activation
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 import numpy as np
-import pprint as pprint
-from keras import backend as K
 import random
-from art.attacks import FastGradientMethod
-from art.classifiers import KerasClassifier
-
-import gc
-
-# tf.enable_eager_execution(
-#     config=None,
-#     device_policy=None,
-#     execution_mode=None
-# )
+import pandas as pd
 
 file_path = "../data/ContagioPDF/ConsolidateData.csv"
 
@@ -96,11 +75,9 @@ def create_model(input_shape):
     for layer in layers:
         classifier.add(layer)
 
-    classifier.compile(optimizer='adam',
-                       loss='binary_crossentropy',
-                       metrics=['accuracy'])
-
+    classifier.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
     return classifier
+
 
 @tf.function
 def adversarial_pattern(X_train_each, y_train_each, model):
@@ -115,117 +92,109 @@ def adversarial_pattern(X_train_each, y_train_each, model):
     signed_grad = tf.sign(gradient)
     return signed_grad
 
+
 def fgsm_attack(model, X_train, y_train, percentage=0.1, epsilon=0.2, clip_min=0.0, clip_max=1.0):
     """Create FGSM attack points for each row of x"""
+
+    # determine how many dataset to be perturbed
+    batch_size = X_train.shape[0]
+
+    for i in range(batch_size):
+        # print("batch: ", i)
+        if batch_size > 100 and i % 100 == 0:
+            print("batch: ", i, " ", i / batch_size)
+
+        # N = random.randint(0, X_train.shape[0]-1)
+        X_train_each = X_train[i].reshape((1, X_train.shape[1]))
+        y_train_each = y_train[i].reshape((1, 1))
+
+        signed_grad = adversarial_pattern(X_train_each, y_train_each, model)
+        X_train_each_adv = X_train_each + signed_grad * epsilon
+
+        # TODO clip function in tensorflow
+        # X_train_each_adv = X_train_each_adv.clip(clip_min, clip_max)
+
+        X_train[i] = X_train_each_adv
+
+    return X_train, y_train
 
     # # determine how many dataset to be perturbed
     # batch_size = int(X_train.shape[0] * percentage)
     #
-    # for batch in range(batch_size):
-    #     print("batch: ", batch)
-    #     # if batch_size > 100 and batch % 100 == 0:
-    #     #     print("batch: ", batch, " ", batch / batch_size)
+    # while True:
+    #     X = []
+    #     y = []
+    #     for batch in range(batch_size):
+    #         if batch_size > 100 and batch % 100 == 0:
+    #             print("batch: ", batch, " ", batch / batch_size)
     #
-    #     N = random.randint(0, X_train.shape[0])
-    #     X_train_each = X_train[N].reshape((1, X_train.shape[1]))
-    #     y_train_each = y_train[N].reshape((1, 1))
-    #     # print(X_train_each.shape)
+    #         N = random.randint(0, X_train.shape[0] - 1)
     #
-    #     # # reshape
-    #     # X_train_each = X_train_each.reshape((1, X_train.shape[1]))
-    #     # y_train_each = y_train_each.reshape((1, 1))
+    #         X_train_each = X_train[N].reshape((1, 135))
+    #         y_train_each = y_train[N].reshape((1, 1))
     #
-    #     signed_grad = adversarial_pattern(X_train_each, y_train_each, model)
-    #     sess = tf.compat.v1.keras.backend.get_session()
-    #     signed_grad_toarray = sess.run(signed_grad)
-    #     X_train_each_adv = X_train_each + signed_grad_toarray * epsilon
-    #     # X_train_each_adv = X_train_each_adv.clip(clip_min, clip_max)
+    #         perturbations = adversarial_pattern(X_train_each, y_train_each, model)
+    #         # sess = tf.compat.v1.keras.backend.get_session()
+    #         # # # tf.initialize_all_variables().run()
+    #         # perturbations_toarray = sess.run(perturbations)
+    #         # sess.close()# too slow
+    #         # # tf.reset_default_graph()
+    #         # # sess = tf.InteractiveSession()
     #
-    #     # need optimization here TODO
-    #     X_train[N] = X_train_each_adv
+    #         # perturbations_toarray = perturbations.eval(session=tf.compat.v1.keras.backend.get_session())
     #
-    # yield X_train, y_train
-
-    # determine how many dataset to be perturbed
-    batch_size = int(X_train.shape[0] * percentage)
-    # sess = tf.compat.v1.keras.backend.get_session()
-
-    while True:
-        X = []
-        y = []
-        for batch in range(batch_size):
-            print("batch: ", batch)
-            # if batch_size > 100 and batch % 100 == 0:
-            #     print("batch: ", batch, " ", batch / batch_size)
-
-            N = random.randint(0, X_train.shape[0]-1)
-
-            X_train_each = X_train[N].reshape((1, 135))
-            y_train_each = y_train[N].reshape((1, 1))
-
-            # X_train_each = X_train_each.reshape((1, 135))
-            # y_train_each = y_train_each.reshape((1, 1))
-
-            # add more operation to sesstion that make code run slower
-            perturbations = adversarial_pattern(X_train_each, y_train_each, model)
-            # sess = tf.compat.v1.keras.backend.get_session()
-            # # # tf.initialize_all_variables().run()
-            # perturbations_toarray = sess.run(perturbations)
-            # sess.close()# too slow
-            # # tf.reset_default_graph()
-            # # sess = tf.InteractiveSession()
-
-            # perturbations_toarray = perturbations.eval(session=tf.compat.v1.keras.backend.get_session())
-
-            adversarial = X_train_each + perturbations * epsilon
-            # tf.compat.v1.keras.backend.clear_session()
-
-            # check here???
-            X.append(adversarial)
-            y.append(y_train[N])
-
-        X = np.asarray(X).reshape((batch_size, 135))
-        y = np.asarray(y)
-
-        return X, y
+    #         adversarial = X_train_each + perturbations * epsilon
+    #         # tf.compat.v1.keras.backend.clear_session()
+    #
+    #         X.append(adversarial)
+    #         y.append(y_train[N])
+    #
+    #     X = np.asarray(X).reshape((batch_size, 135))
+    #     y = np.asarray(y)
+    #
+    #     return X, y
 
 
 def bim_a_attack(model, X_train, y_train, epsilon=0.2, clip_min=0.0, clip_max=1.0, iterations=10):
-    for i in X_train.shape[0]:
-        X_train_each = X_train[i]
-        y_train_each = y_train[i]
-        X_train_each = X_train_each.reshape((1, X_train.shape[1]))
-        y_train_each = y_train_each.reshape((1, 1))
+    for i in range(X_train.shape[0]):
+        X_train_each = X_train[i].reshape((1, X_train.shape[1]))
+        y_train_each = y_train[i].reshape((1, 1))
 
         for k in range(iterations):
-            perturbations = adversarial_pattern(X_train_each, y_train_each, model)
-            sess = tf.compat.v1.keras.backend.get_session()
-            perturbations_toarray = sess.run(perturbations)
-            X_train_each_adv = X_train_each + perturbations_toarray * epsilon
-            if model.predict(X_train_each_adv) != y_train_each:
+            # print("row :", i, " iteration: ", k)
+            signed_grad = adversarial_pattern(X_train_each, y_train_each, model)
+
+            # the problem is that X_train_each_adv might be the same every time
+            X_train_each_adv = X_train_each + signed_grad * epsilon
+            X_train_each_adv = X_train_each_adv.numpy()
+
+            prediction = model.predict_classes(X_train_each_adv)
+            # print("prediction: ", prediction, " actual: ", y_train_each)
+            if not np.equal(prediction, y_train_each):
                 break
 
-        X_train = np.delete(X_train, i, axis=0)
-        X_train = np.vstack((X_train, X_train_each_adv))
+        X_train[i] = X_train_each_adv
 
     return X_train, y_train
 
 
 def bim_b_attack(model, X_train, y_train, epsilon=0.2, clip_min=0.0, clip_max=1.0, iterations=10):
-    for i in X_train.shape[0]:
-        X_train_each = X_train[i]
-        y_train_each = y_train[i]
-        X_train_each = X_train_each.reshape((1, X_train.shape[1]))
-        y_train_each = y_train_each.reshape((1, 1))
+    for i in range(X_train.shape[0]):
+        X_train_each = X_train[i].reshape((1, X_train.shape[1]))
+        y_train_each = y_train[i].reshape((1, 1))
 
         for k in range(iterations):
-            perturbations = adversarial_pattern(X_train_each, y_train_each, model)
-            sess = tf.compat.v1.keras.backend.get_session()
-            perturbations_toarray = sess.run(perturbations)
-            X_train_each_adv = X_train_each + perturbations_toarray * epsilon
+            # print("row :", i, " iteration: ", k)
+            signed_grad = adversarial_pattern(X_train_each, y_train_each, model)
 
-        X_train = np.delete(X_train, i, axis=0)
-        X_train = np.vstack((X_train, X_train_each_adv))
+            # the problem is that X_train_each_adv might be the same every time
+            X_train_each_adv = X_train_each + signed_grad * epsilon
+            X_train_each_adv = X_train_each_adv.numpy()
+
+            # prediction = model.predict_classes(X_train_each_adv)
+            # print("prediction: ", prediction, " actual: ", y_train_each)
+
+        X_train[i] = X_train_each_adv
 
     return X_train, y_train
 
@@ -283,75 +252,33 @@ if __name__ == "__main__":
     # creating model with original dataset
     input_shape = X_train.shape[1]
     model = create_model(input_shape)
-    print(model.summary())
-
-    # classifier = KerasClassifier(model=model, clip_values=(0.0, 2.0))
-    # classifier.fit(X_train, y_train, nb_epochs=5, batch_size=32)
-
+    # print(model.summary())
     model.fit(X_train, y_train, batch_size=32, epochs=1)
+
+    # for i in range(X_test.shape[0]):
+    #     print("prediction: ", model.predict_classes(X_test[i].reshape(1, 135)), " actual: ", y_test[i].reshape(1,1))
     print("Base accuracy on original dataset:", model.evaluate(x=X_test, y=y_test, verbose=0))
 
-    X_train_adv, y_train_adv = fgsm_attack(model, X_train, y_train, percentage=1.0, epsilon=0.5, clip_min=0.0, clip_max=1.0)
+    # fgsm attack on training dataset
+    X_train_adv_fgsm, y_train_adv_fgsm = fgsm_attack(model, X_train, y_train, epsilon=0.5, clip_min=0.0,
+                                                     clip_max=1.0)
 
     model2 = create_model(input_shape)
-    model2.fit(X_train_adv, y_train_adv, batch_size=32, epochs=1)
+    model2.fit(X_train_adv_fgsm, y_train_adv_fgsm, batch_size=32, epochs=1)
+    print("Base accuracy of fgsm on adversarial dataset:", model2.evaluate(x=X_test, y=y_test, verbose=0))
 
-    # Assess base model on adversarial data
-    print("Base accuracy on adversarial dataset:", model2.evaluate(x=X_test, y=y_test, verbose=0))
-    sys.exit(-1)
+    # BIM A attack
+    X_train_adv_bim_a, y_train_adv_bim_a = bim_a_attack(model, X_train, y_train, epsilon=0.5, clip_min=0.0,
+                                                        clip_max=1.0, iterations=10)
 
-    # indicate how many of training data are perturbed
-    X_adversarial_train, y_adversarial_train = next(fgsm_attack(18020))
+    model3 = create_model(input_shape)
+    model3.fit(X_train_adv_bim_a, y_train_adv_bim_a, batch_size=32, epochs=1)
+    print("Base accuracy of BIM A on adversarial dataset:", model3.evaluate(x=X_test, y=y_test, verbose=0))
 
-# # test on one row
-# X_train_first = X_train[0]
-# y_train_first = y_train[0]
-# print(type(X_train_first))
-# print(X_train_first.shape)
-#
-# X_train_first = X_train_first.reshape((1, 135))
-# y_train_first = y_train_first.reshape((1, 1))
-#
-# # perturbations = adversarial_pattern(X_train_first.reshape((1, 135)), y_train_first.reshape((1, 1)))
-# perturbations = adversarial_pattern(X_train_first, y_train_first)
-# sess = tf.compat.v1.keras.backend.get_session()
-# perturbations_toarray = sess.run(perturbations)
-# print(X_train_first.shape)
-# print(perturbations_toarray.shape)
-# adversarial = X_train_first + perturbations_toarray * 0.1
-# print(adversarial)
-# print(adversarial.shape)
-#
-# # # convert tensor to ndarray
-# # sess = tf.compat.v1.keras.backend.get_session()
-# # array = sess.run(adversarial)
-# # print(array)
-# # print(type(array))
-# # print(array.shape)
-# sys.exit(-1)
+    # BIM B attack
+    X_train_adv_bim_b, y_train_adv_bim_b = bim_b_attack(model, X_train, y_train, epsilon=0.5, clip_min=0.0,
+                                                        clip_max=1.0, iterations=10)
 
-
-# epsilon = 0.1
-# adv_crafter = FastGradientMethod(model, epsilon)
-# X_train_adv = adv_crafter.generate(x=X_train)
-#
-# model2 = create_model(X_train_adv)
-# model2.fit(X_train_adv, y_train)
-#
-# # Assess base model on adversarial data
-# print("Base accuracy on adversarial dataset:", model.evaluate(x=X_test, y=y_test, verbose=0))
-#
-# sys.exit(-1)
-# Generate adversarial data
-X_adversarial_train, y_adversarial_train = next(generate_adversarials(18020))
-# X_adversarial_test, y_adversarial_test = next(generate_adversarials(200))
-
-
-model2 = create_model(X_adversarial_train)
-model2.fit(X_adversarial_train, y_adversarial_train, batch_size=32, epochs=1)
-
-# Assess base model on adversarial data
-print("Base accuracy on adversarial dataset:", model.evaluate(x=X_test, y=y_test, verbose=0))
-
-# # Assess base model on adversarial data
-# print("Base accuracy on adversarial images:", model.evaluate(x=x_adversarial_test, y=y_adversarial_test, verbose=0))
+    model4 = create_model(input_shape)
+    model4.fit(X_train_adv_bim_b, y_train_adv_bim_b, batch_size=32, epochs=1)
+    print("Base accuracy of BIM B on adversarial dataset:", model4.evaluate(x=X_test, y=y_test, verbose=0))
