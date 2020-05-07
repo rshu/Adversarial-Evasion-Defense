@@ -1,0 +1,11 @@
+loss,params,iteration,pickle_index,run_time
+0.5287458300590515,"{'drop_out': 0.1, 'first_layer_dense': 68, 'hidden_layer_activation': 'selu', 'optimizer': 'Adagrad', 'output_layer_activation': 'relu', 'second_layer_dense': 42, 'third_layer_dense': 32}",1,3.795292349997908
+0.055715858936309814,"{'drop_out': 0.2, 'first_layer_dense': 36, 'hidden_layer_activation': 'sigmoid', 'optimizer': 'Adamax', 'output_layer_activation': 'relu', 'second_layer_dense': 39, 'third_layer_dense': 29}",2,3.040003189991694
+0.5718091130256653,"{'drop_out': 0.4, 'first_layer_dense': 95, 'hidden_layer_activation': 'relu', 'optimizer': 'SGD', 'output_layer_activation': 'relu', 'second_layer_dense': 50, 'third_layer_dense': 26}",3,2.790118528995663
+0.5649278461933136,"{'drop_out': 0.1, 'first_layer_dense': 78, 'hidden_layer_activation': 'selu', 'optimizer': 'Adam', 'output_layer_activation': 'relu', 'second_layer_dense': 31, 'third_layer_dense': 19}",4,3.7179464180080686
+0.5234184265136719,"{'drop_out': 0.30000000000000004, 'first_layer_dense': 116, 'hidden_layer_activation': 'tanh', 'optimizer': 'Adagrad', 'output_layer_activation': 'relu', 'second_layer_dense': 48, 'third_layer_dense': 10}",5,3.002869536023354
+0.49522751569747925,"{'drop_out': 0.4, 'first_layer_dense': 83, 'hidden_layer_activation': 'tanh', 'optimizer': 'Adagrad', 'output_layer_activation': 'tanh', 'second_layer_dense': 39, 'third_layer_dense': 18}",6,2.916962824994698
+0.5513873398303986,"{'drop_out': 0.2, 'first_layer_dense': 115, 'hidden_layer_activation': 'selu', 'optimizer': 'NAdam', 'output_layer_activation': 'relu', 'second_layer_dense': 37, 'third_layer_dense': 24}",7,4.090521213016473
+0.014872372150421143,"{'drop_out': 0.4, 'first_layer_dense': 69, 'hidden_layer_activation': 'softmax', 'optimizer': 'NAdam', 'output_layer_activation': 'sigmoid', 'second_layer_dense': 46, 'third_layer_dense': 16}",8,3.6146375060197897
+0.5249722599983215,"{'drop_out': 0.2, 'first_layer_dense': 144, 'hidden_layer_activation': 'sigmoid', 'optimizer': 'RMSprop', 'output_layer_activation': 'relu', 'second_layer_dense': 39, 'third_layer_dense': 22}",9,3.0168521520099603
+0.9924528300762177,"{'drop_out': 0.5, 'first_layer_dense': 106, 'hidden_layer_activation': 'relu', 'optimizer': 'RMSprop', 'output_layer_activation': 'elu', 'second_layer_dense': 41, 'third_layer_dense': 26}",10,3.124805851985002

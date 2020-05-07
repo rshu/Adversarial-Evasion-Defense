@@ -34,12 +34,81 @@ import csv
 from hyperopt import fmin
 from timeit import default_timer as timer
 from hyperopt import STATUS_OK
-from attack import load_dataset, create_model
-import pickle
 
 file_path = "../data/ContagioPDF/ConsolidateData.csv"
-out_file = 'dl_trials_1.csv'
-MAX_EVALS = 100
+out_file = 'dl_trials_2.csv'
+MAX_EVALS = 50
+# N_FOLDS = 10
+# input_shape = 135
+
+def load_dataset(file_path):
+    df = pd.read_csv(file_path, encoding='utf8', low_memory=False)
+    df = df.drop(['filename'], axis=1)
+    df.columns = df.columns.str.lstrip()
+
+    print(df.shape)  # (27205, 136)
+    print(df.dtypes)
+    print(df.head())
+    print(df.describe())
+    # print(list(df.Label.unique()))
+    print(df['class'].value_counts())
+    print(df['class'].isnull().sum())
+
+    df = df.dropna()
+    df = df.reset_index(drop=True)
+    print(df.shape)  # (27205, 136)
+
+    print(df.select_dtypes(exclude=['int', 'float']))
+
+    df['class'] = df['class'].astype(str).map({'False': 0, 'True': 1})
+    df['box_other_only'] = df['box_other_only'].astype(str).map({'False': 0, 'True': 1})
+    df['pdfid_mismatch'] = df['pdfid_mismatch'].astype(str).map({'False': 0, 'True': 1})
+
+    # print(df.select_dtypes(exclude=['int', 'float']))
+    print(df['class'].value_counts())
+    print(df['class'].dtypes)
+    print(df['box_other_only'].dtypes)
+    print(df['pdfid_mismatch'].dtypes)
+
+    df = df.drop_duplicates()
+    print(df.shape)  # (22525, 136)
+
+    df.to_pickle("./saved_dataframe.pkl")
+    return df
+
+
+def create_model(input_shape):
+    config = tf.compat.v1.ConfigProto(device_count={'GPU': 1, 'CPU': 8})
+    sess = tf.compat.v1.Session(config=config)
+    tf.compat.v1.keras.backend.set_session(sess)
+
+    classifier = keras.Sequential()
+    # dropout to avoid overfitting
+    layers = [
+        Dense(X_train.shape[1], input_shape=(input_shape,)),
+        Activation('relu'),
+        Dropout(0.2),
+        Dense(64),
+        Activation('relu'),
+        Dropout(0.2),
+        Dense(32),
+        Activation('relu'),
+        Dropout(0.2),
+        Dense(16),
+        Activation('relu'),
+        Dropout(0.2),
+        Dense(1),
+        Activation('sigmoid')
+    ]
+
+    for layer in layers:
+        classifier.add(layer)
+
+    classifier.compile(optimizer='adam',
+                       loss='binary_crossentropy',
+                       metrics=['accuracy'])
+
+    return classifier
 
 
 def dnn_model(params, input_shape):
@@ -131,7 +200,6 @@ def dnn_model2(params, input_shape):
 
     return classifier
 
-
 # deep learning optimization using bayesian optimization
 
 def objective(params, ):
@@ -147,14 +215,11 @@ def objective(params, ):
     params['drop_out'] = float(params['drop_out'])
 
     start = timer()
-    classifier = dnn_model(params, input_shape)
+    classifier = dnn_model2(params, input_shape)
     classifier.fit(X_train, y_train, batch_size=32, epochs=1)
-    acc_results = classifier.evaluate(x=X_test, y=y_test, verbose=0)[1]
-
     # save to pickles
-    pickle_model_index = ITERATION
-    pickle_model_file = "./pickles/bayesOpt_nn_model_" + str(pickle_model_index) + ".pkl"
-    pickle.dump(classifier, open(pickle_model_file, 'wb'))
+
+    acc_results = classifier.evaluate(x=X_test, y=y_test, verbose=0)[5]
 
     run_time = timer() - start
 
@@ -237,7 +302,8 @@ if __name__ == "__main__":
     sample_space = sample(space)
     print(sample_space)
 
-    # optimization algorithm: Tree Parzen Estimator
+    # optimization algorithm
+    # Tree Parzen Estimator
     # the method for constructing the surrogate function and
     # choosing the next hyperparameters to evaluate.
     tpe_algorithm = tpe.suggest
@@ -263,11 +329,12 @@ if __name__ == "__main__":
     best = fmin(fn=objective, space=space, algo=tpe.suggest,
                 max_evals=MAX_EVALS, trials=bayes_trials, rstate=np.random.RandomState(50))
 
+
     # Sort the trials with lowest loss (highest AUC) first
     bayes_trials_results = sorted(bayes_trials.results, key=lambda x: x['loss'])
     print(bayes_trials_results[:2])
 
-    results = pd.read_csv('dl_trials_1.csv')
+    results = pd.read_csv('dl_trials_2.csv')
 
     # Sort with best scores on top and reset index for slicing
     results.sort_values('loss', ascending=True, inplace=True)
