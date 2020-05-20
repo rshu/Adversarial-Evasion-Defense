@@ -3,15 +3,16 @@ import json, csv, sys
 from find_two_models import dnn_model
 from os import path
 from sklearn.model_selection import train_test_split
-from attack import load_dataset, file_path, fgsm_attack, bim_b_attack, bim_a_attack
+from attack_backup_2 import load_dataset, file_path, fgsm_attack, bim_b_attack, bim_a_attack, deepfool_attack
 from sklearn import preprocessing
+import gower
 
 
 def normalize(x, xmin, xmax):
     return (x - xmin) / (xmax - xmin)
 
 
-def calculate_instance_distance(param1, param2):
+def instance_distance(param1, param2):
     '''
     Return instance based distance
     '''
@@ -24,6 +25,8 @@ def calculate_instance_distance(param1, param2):
     third_layer_dense_max = 32
     drop_out_min = 0.0
     drop_out_max = 0.5
+    num_epochs_min = 5
+    num_epochs_max = 20
 
     # add first_layer_dense distance
     distance += (normalize(param1['first_layer_dense'], first_layer_dense_min, first_layer_dense_max) - normalize(
@@ -42,19 +45,33 @@ def calculate_instance_distance(param1, param2):
         param2['drop_out'], drop_out_min, drop_out_max)) ** 2
 
     # add hidden_layer_activation distance
-    if (param1['hidden_layer_activation'] != param2['hidden_layer_activation']):
+    if param1['hidden_layer_activation'] != param2['hidden_layer_activation']:
         distance += 1
     else:
         distance += 0
 
     # add output_layer_activation distance
-    if (param1['output_layer_activation'] != param2['output_layer_activation']):
+    if param1['output_layer_activation'] != param2['output_layer_activation']:
         distance += 1
     else:
         distance += 0
 
     # add optimizer distance
-    if (param1['optimizer'] != param2['optimizer']):
+    if param1['optimizer'] != param2['optimizer']:
+        distance += 1
+    else:
+        distance += 0
+
+    if param1['batch_size'] != param2['batch_size']:
+        distance += 1
+    else:
+        distance += 0
+
+    # add num_epochs distance
+    distance += (normalize(param1['num_epochs'], num_epochs_min, num_epochs_max) - normalize(
+        param2['num_epochs'], num_epochs_min, num_epochs_max)) ** 2
+
+    if param1['learning_rate'] != param2['learning_rate']:
         distance += 1
     else:
         distance += 0
@@ -62,7 +79,7 @@ def calculate_instance_distance(param1, param2):
     return distance
 
 
-def calculate_instance_distance2(param1, param2):
+def instance_distance2(param1, param2):
     '''
     Return instance based distance
     '''
@@ -114,6 +131,11 @@ def calculate_instance_distance2(param1, param2):
     return distance
 
 
+# TODO
+def gower_distance(param1, param2):
+    pass
+
+
 if __name__ == "__main__":
     df = pd.read_csv('dl_trials_1.csv')
     # print(df.shape)
@@ -130,7 +152,7 @@ if __name__ == "__main__":
     distance_file = open(distance_result_file, 'w')
     writer = csv.writer(distance_file)
 
-    writer.writerow(['loss', 'distance', 'FGSM', 'BIM-A', 'BIM-B', 'params'])
+    writer.writerow(['loss', 'distance', 'FGSM', 'BIM-A', 'BIM-B', 'deepfool', 'params'])
 
     if path.exists("saved_dataframe.pkl"):
         dataset = pd.read_pickle("./saved_dataframe.pkl")
@@ -166,33 +188,74 @@ if __name__ == "__main__":
     print("Base accuracy on original dataset:", best_model.evaluate(x=X_test, y=y_test, verbose=0))
 
     # define performance delta
-    loss_epsilon = 0.1
+    loss_epsilon = 0.05
 
     # make a copy of X_test and y_test
+    X_test_fgsm = X_test.copy()
+    y_test_fgsm = y_test.copy()
 
+    X_test_bim_a = X_test.copy()
+    y_test_bim_a = y_test.copy()
 
+    X_test_bim_b = X_test.copy()
+    y_test_bim_b = y_test.copy()
+
+    X_test_deepfool = X_test.copy()
+    y_test_deepfool = y_test.copy()
 
     print("")
     print("creating FGSM advasary data...")
-    X_test_adv_fgsm, y_test_adv_fgsm = fgsm_attack(best_model, X_test, y_test, epsilon=0.2, clip_min=0.0, clip_max=1.0)
+    X_test_adv_fgsm, y_test_adv_fgsm = fgsm_attack(best_model, X_test_fgsm, y_test_fgsm, epsilon=0.3, clip_min=0.0,
+                                                   clip_max=1.0)
 
     # print(X_test_adv_fgsm)
 
     print("")
     print("creating BIM-A advasary data...")
-    X_test_adv_bim_a, y_test_adv_bim_a = bim_a_attack(best_model, X_test, y_test, epsilon=0.2, clip_min=0.0,
-                                                      clip_max=1.0, iterations=10)
+    X_test_adv_bim_a, y_test_adv_bim_a = bim_a_attack(best_model, X_test_bim_a, y_test_bim_a, epsilon=0.3,
+                                                      clip_min=0.0,
+                                                      clip_max=1.0, iterations=15)
 
     # print(X_test_adv_bim_a)
 
     print("")
     print("creating BIM-B advasary data...")
-    X_test_adv_bim_b, y_test_adv_bim_b = bim_b_attack(best_model, X_test, y_test, epsilon=0.3, clip_min=0.0,
-                                                      clip_max=1.0, iterations=10)
+    X_test_adv_bim_b, y_test_adv_bim_b = bim_b_attack(best_model, X_test_bim_b, y_test_bim_b, epsilon=0.3,
+                                                      clip_min=0.0,
+                                                      clip_max=1.0, iterations=15)
+
+    print("")
+    print("creating deepfool advasary data...")
+    X_test_adv_deepfool = deepfool_attack(best_model, X_test_deepfool)
+
+    # creating gower distance dataframe
+    data = []
+
+    for i in range(df.shape[0]):
+        params_dict = eval(df.iloc[i]['params'])
+        # print(params_dict)
+        tmp_list = []
+        tmp_list.append(params_dict['drop_out'])
+        tmp_list.append(params_dict['first_layer_dense'])
+        tmp_list.append(params_dict['hidden_layer_activation'])
+        tmp_list.append(params_dict['optimizer'])
+        tmp_list.append(params_dict['output_layer_activation'])
+        tmp_list.append(params_dict['second_layer_dense'])
+        tmp_list.append(params_dict['third_layer_dense'])
+        tmp_list.append(params_dict['batch_size'])
+        tmp_list.append(params_dict['num_epochs'])
+        tmp_list.append(params_dict['learning_rate'])
+        # print(tmp_list)
+        data.append(tmp_list)
+
+    params_dataframe = pd.DataFrame(data,
+                                    columns=['drop_out', 'first_layer_dense', 'hidden_layer_activation', 'optimizer',
+                                             'output_layer_activation', 'second_layer_dense', 'third_layer_dense',
+                                             'batch_size', 'num_epochs', 'learning_rate'])
 
     # sys.exit(-1)
     print("")
-    print("finding models with epsilon perf...")
+    print("finding models within epsilon perf...")
     for i in range(df.shape[0]):
         if df.iloc[i]['loss'] - best_result['loss'] <= loss_epsilon:
             # print(df.iloc[i])
@@ -214,10 +277,26 @@ if __name__ == "__main__":
             fgsm_result = candidate_model.evaluate(x=X_test_adv_fgsm, y=y_test_adv_fgsm, verbose=0)[1]
             bim_a_result = candidate_model.evaluate(x=X_test_adv_bim_a, y=y_test_adv_bim_a, verbose=0)[1]
             bim_b_result = candidate_model.evaluate(x=X_test_adv_bim_b, y=y_test_adv_bim_b, verbose=0)[1]
+            deepfool_result = candidate_model.evaluate(x=X_test_adv_deepfool, y=y_test_deepfool, verbose=0)[1]
+
+            candidate_params = params_dataframe.iloc[i:i + 1, :]
+
+            # fetch the first result from output matrix
+            # True means categorical, False means numerical
+            params_gower_distance = gower.gower_matrix(params_dataframe, candidate_params,
+                                                       cat_features=[False, False, True, True, True, False, False,
+                                                                     True, False, True])[0][0]
+
+            params_instance_distance = instance_distance(eval(best_result['params']), eval(df.iloc[i]['params']))
 
             writer.writerow([df.iloc[i]['loss'],
-                             calculate_instance_distance2(eval(best_result['params']), eval(df.iloc[i]['params'])),
+                             params_gower_distance,
                              fgsm_result, bim_a_result,
-                             bim_b_result, df.iloc[i]['params']])
+                             bim_b_result, deepfool_result, df.iloc[i]['params']])
+
+            # writer.writerow([df.iloc[i]['loss'],
+            #                  calculate_instance_distance2(eval(best_result['params']), eval(df.iloc[i]['params'])),
+            #                  fgsm_result, bim_a_result,
+            #                  bim_b_result, df.iloc[i]['params']])
 
     distance_file.close()
