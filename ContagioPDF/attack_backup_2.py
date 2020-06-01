@@ -217,7 +217,7 @@ def jsma_attack():
     pass
 
 
-def deepfool_attack(model, X_input, eta=0.02, epochs=3, clip_min=0.0, clip_max=1.0, min_prob=0.0):
+def deepfool_attack(model, X_input, eta=0.2, epochs=10, clip_min=0.0, clip_max=1.0, min_prob=0.0):
     '''
     The original DeepFool will stop whenever we successfully cross the decision boundary.
 

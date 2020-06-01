@@ -1,4 +1,5 @@
 import pandas as pd
+import tensorflow as tf
 
 # AttributeError: 'Tensor' object has no attribute 'numpy'
 # input_shape = input_shape.numpy()
@@ -8,10 +9,16 @@ import pandas as pd
 # tf.executing_eagerly()
 import keras
 from os import path
-from keras.layers import Dense, Dropout, Activation
+import pickle, sys
+from keras.layers import Input, Dense, Dropout, Activation
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 import numpy as np
+import pprint as pprint
+from keras import backend as K
+import random
+from art.attacks import FastGradientMethod
+from art.classifiers import KerasClassifier
 
 # tf.enable_eager_execution(
 #     config=None,
@@ -27,7 +34,7 @@ import csv
 from hyperopt import fmin
 from timeit import default_timer as timer
 from hyperopt import STATUS_OK
-from misc.attack import load_dataset
+from attack import load_dataset, create_model
 import pickle
 
 file_path = "../data/ContagioPDF/ConsolidateData.csv"

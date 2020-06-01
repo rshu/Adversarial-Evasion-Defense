@@ -138,7 +138,7 @@ def gower_distance(param1, param2):
 
 
 if __name__ == "__main__":
-    df = pd.read_csv('dl_trials_1.csv')
+    df = pd.read_csv('dl_trials_2.csv')
     # print(df.shape)
 
     # Sort with best scores on top and reset index for slicing
@@ -160,8 +160,9 @@ if __name__ == "__main__":
     else:
         dataset = load_dataset(file_path)
 
-    X = dataset.drop(['class'], axis=1)
-    y = dataset['class']
+    X = dataset.drop(['Label'], axis=1)
+    print(X)
+    y = dataset['Label']
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.2, random_state=42)
     X_train = X_train.to_numpy()
@@ -189,7 +190,7 @@ if __name__ == "__main__":
     print("Base accuracy on original dataset:", best_model.evaluate(x=X_test, y=y_test, verbose=0))
 
     # define performance delta
-    loss_epsilon = 0.05
+    loss_epsilon = 0.10
 
     # make a copy of X_test and y_test
     X_test_fgsm = X_test.copy()
@@ -306,7 +307,7 @@ if __name__ == "__main__":
 
     print(dis_index_dict)
     N = 45
-    d = 0.6
+    d = 0.4
 
     # random select N model where distance is large than d
     filtered_dict = {}
@@ -339,7 +340,7 @@ if __name__ == "__main__":
         model_file = "./pickles/bayesOpt_nn_model_" + str(model_index) + ".pkl"
         classifier = pd.read_pickle(model_file)
 
-        if classifier.evaluate(x=X_test_adv_fgsm, y=y_test_adv_fgsm, verbose=0)[1] < 0.6:
+        if classifier.evaluate(x = X_test_adv_fgsm, y = y_test_adv_fgsm, verbose=0)[1] < 0.6:
             pass
         else:
             # FGSM prediction
@@ -347,7 +348,7 @@ if __name__ == "__main__":
             prediction_FGSM = [1 if x > 0.5 else 0 for x in prediction_FGSM]
             FGSM_prediction_result.append(prediction_FGSM)
 
-        if classifier.evaluate(x=X_test_adv_bim_a, y=y_test_adv_bim_a, verbose=0)[1] < 0.27:
+        if classifier.evaluate(x = X_test_adv_bim_a, y = y_test_adv_bim_a, verbose=0)[1] < 0.27:
             pass
         else:
             # BIM-A prediction
@@ -355,7 +356,7 @@ if __name__ == "__main__":
             prediction_BIM_A = [1 if x > 0.5 else 0 for x in prediction_BIM_A]
             BIM_A_prediction_result.append(prediction_BIM_A)
 
-        if classifier.evaluate(x=X_test_adv_bim_b, y=y_test_adv_bim_b, verbose=0)[1] < 0.47:
+        if classifier.evaluate(x = X_test_adv_bim_b, y = y_test_adv_bim_b, verbose=0)[1] < 0.47:
             pass
         else:
             # BIM-B prediction
@@ -363,7 +364,7 @@ if __name__ == "__main__":
             prediction_BIM_B = [1 if x > 0.5 else 0 for x in prediction_BIM_B]
             BIM_B_prediction_result.append(prediction_BIM_B)
 
-        if classifier.evaluate(x=X_test_adv_deepfool, y=y_test_deepfool, verbose=0)[1] < 0.85:
+        if classifier.evaluate(x = X_test_adv_deepfool, y = y_test_deepfool, verbose=0)[1] < 0.85:
             pass
         else:
             # Deepfool prediction
@@ -379,7 +380,7 @@ if __name__ == "__main__":
     for i in range(len(final_list_FGSM)):
         t = final_list_FGSM[i]
         # m = mode(t)
-        if (sum(list(t)) / len(list(t))) >= 0.50:
+        if (sum(list(t))/len(list(t))) >= 0.50:
             m = 1
         else:
             m = 0

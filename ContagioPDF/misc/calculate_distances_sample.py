@@ -1,12 +1,10 @@
 import pandas as pd
-import json, csv, sys
-from find_two_models import dnn_model
+import csv
 from os import path
 from sklearn.model_selection import train_test_split
 from attack_backup_2 import load_dataset, file_path, fgsm_attack, bim_b_attack, bim_a_attack, deepfool_attack
 from sklearn import preprocessing
-import gower, random
-from statistics import mode
+import gower
 
 
 def normalize(x, xmin, xmax):
@@ -132,13 +130,8 @@ def instance_distance2(param1, param2):
     return distance
 
 
-# TODO
-def gower_distance(param1, param2):
-    pass
-
-
 if __name__ == "__main__":
-    df = pd.read_csv('dl_trials_1.csv')
+    df = pd.read_csv('dl_trials_sample.csv')
     # print(df.shape)
 
     # Sort with best scores on top and reset index for slicing
@@ -149,14 +142,14 @@ if __name__ == "__main__":
     best_result = df.iloc[0]
     # print(best_result['params'])
 
-    distance_result_file = 'distance_result.csv'
+    distance_result_file = 'distance_result_sample.csv'
     distance_file = open(distance_result_file, 'w')
     writer = csv.writer(distance_file)
 
     writer.writerow(['loss', 'distance', 'FGSM', 'BIM-A', 'BIM-B', 'deepfool', 'params'])
 
-    if path.exists("saved_dataframe.pkl"):
-        dataset = pd.read_pickle("./saved_dataframe.pkl")
+    if path.exists("../saved_dataframe_sample.pkl"):
+        dataset = pd.read_pickle("../saved_dataframe_sample.pkl")
     else:
         dataset = load_dataset(file_path)
 
@@ -185,11 +178,11 @@ if __name__ == "__main__":
     # best_model.fit(X_train, y_train, batch_size=32, epochs=1)
 
     # the first line of sorted file based on loss
-    best_model = pd.read_pickle("./pickles/bayesOpt_nn_model_" + str(best_result['iteration']) + ".pkl")
+    best_model = pd.read_pickle("./sample_pickles/bayesOpt_nn_model_" + str(best_result['iteration']) + ".pkl")
     print("Base accuracy on original dataset:", best_model.evaluate(x=X_test, y=y_test, verbose=0))
 
     # define performance delta
-    loss_epsilon = 0.05
+    loss_epsilon = 0.10
 
     # make a copy of X_test and y_test
     X_test_fgsm = X_test.copy()
@@ -209,15 +202,11 @@ if __name__ == "__main__":
     X_test_adv_fgsm, y_test_adv_fgsm = fgsm_attack(best_model, X_test_fgsm, y_test_fgsm, epsilon=0.3, clip_min=0.0,
                                                    clip_max=1.0)
 
-    # print(X_test_adv_fgsm)
-
     print("")
     print("creating BIM-A advasary data...")
     X_test_adv_bim_a, y_test_adv_bim_a = bim_a_attack(best_model, X_test_bim_a, y_test_bim_a, epsilon=0.3,
                                                       clip_min=0.0,
                                                       clip_max=1.0, iterations=15)
-
-    # print(X_test_adv_bim_a)
 
     print("")
     print("creating BIM-B advasary data...")
@@ -257,7 +246,6 @@ if __name__ == "__main__":
     # sys.exit(-1)
     print("")
     print("finding models within epsilon perf...")
-    dis_index_dict = {}
     for i in range(df.shape[0]):
         if df.iloc[i]['loss'] - best_result['loss'] <= loss_epsilon:
             # print(df.iloc[i])
@@ -269,7 +257,7 @@ if __name__ == "__main__":
             # candidate_model.fit(X_train, y_train, batch_size=32, epochs=1)
 
             candidate_model_index = df.iloc[i]['iteration']
-            candidate_model_file = "./pickles/bayesOpt_nn_model_" + str(candidate_model_index) + ".pkl"
+            candidate_model_file = "./sample_pickles/bayesOpt_nn_model_" + str(candidate_model_index) + ".pkl"
             candidate_model = pd.read_pickle(candidate_model_file)
 
             # print(candidate_model.evaluate(x=X_test_adv_fgsm, y=y_test_adv_fgsm, verbose=0))
@@ -291,7 +279,6 @@ if __name__ == "__main__":
 
             params_instance_distance = instance_distance(eval(best_result['params']), eval(df.iloc[i]['params']))
 
-            dis_index_dict[params_gower_distance] = candidate_model_index
             writer.writerow([df.iloc[i]['loss'],
                              params_gower_distance,
                              fgsm_result, bim_a_result,
@@ -303,186 +290,3 @@ if __name__ == "__main__":
             #                  bim_b_result, df.iloc[i]['params']])
 
     distance_file.close()
-
-    print(dis_index_dict)
-    N = 45
-    d = 0.6
-
-    # random select N model where distance is large than d
-    filtered_dict = {}
-    for (key, value) in dis_index_dict.items():
-        if key >= d:
-            filtered_dict[key] = value
-
-    # print(filtered_dict)
-
-    if len(filtered_dict) % 2 == 0:
-        N = len(filtered_dict) - 1
-    else:
-        N = len(filtered_dict)
-
-    sampled_model = random.sample(filtered_dict.items(), N)
-    print(sampled_model)
-
-    # add another level of filter
-    # remove model if lower than baseline
-
-    FGSM_prediction_result = []
-    BIM_A_prediction_result = []
-    BIM_B_prediction_result = []
-    Deepfool_prediction_result = []
-
-    for i in range(N):
-        t = sampled_model[i]
-        model_index = t[1]
-        # print(model_index)
-        model_file = "./pickles/bayesOpt_nn_model_" + str(model_index) + ".pkl"
-        classifier = pd.read_pickle(model_file)
-
-        if classifier.evaluate(x=X_test_adv_fgsm, y=y_test_adv_fgsm, verbose=0)[1] < 0.6:
-            pass
-        else:
-            # FGSM prediction
-            prediction_FGSM = classifier.predict(X_test_adv_fgsm).ravel().tolist()
-            prediction_FGSM = [1 if x > 0.5 else 0 for x in prediction_FGSM]
-            FGSM_prediction_result.append(prediction_FGSM)
-
-        if classifier.evaluate(x=X_test_adv_bim_a, y=y_test_adv_bim_a, verbose=0)[1] < 0.27:
-            pass
-        else:
-            # BIM-A prediction
-            prediction_BIM_A = classifier.predict(X_test_adv_bim_a).ravel().tolist()
-            prediction_BIM_A = [1 if x > 0.5 else 0 for x in prediction_BIM_A]
-            BIM_A_prediction_result.append(prediction_BIM_A)
-
-        if classifier.evaluate(x=X_test_adv_bim_b, y=y_test_adv_bim_b, verbose=0)[1] < 0.47:
-            pass
-        else:
-            # BIM-B prediction
-            prediction_BIM_B = classifier.predict(X_test_adv_bim_b).ravel().tolist()
-            prediction_BIM_B = [1 if x > 0.5 else 0 for x in prediction_BIM_B]
-            BIM_B_prediction_result.append(prediction_BIM_B)
-
-        if classifier.evaluate(x=X_test_adv_deepfool, y=y_test_deepfool, verbose=0)[1] < 0.85:
-            pass
-        else:
-            # Deepfool prediction
-            prediction_Deepfool = classifier.predict(X_test_adv_deepfool).ravel().tolist()
-            prediction_Deepfool = [1 if x > 0.5 else 0 for x in prediction_Deepfool]
-            Deepfool_prediction_result.append(prediction_Deepfool)
-
-    # FGSM prediction
-    final_list_FGSM = list(zip(*FGSM_prediction_result))
-    print(final_list_FGSM)
-
-    agg_prediction_FGSM = []
-    for i in range(len(final_list_FGSM)):
-        t = final_list_FGSM[i]
-        # m = mode(t)
-        if (sum(list(t)) / len(list(t))) >= 0.50:
-            m = 1
-        else:
-            m = 0
-        agg_prediction_FGSM.append(m)
-
-    print("Ensemble prediction:")
-    print(agg_prediction_FGSM)
-
-    print("Test:")
-    print(y_test_adv_fgsm.ravel().tolist())
-    y_test_fgsm_list = y_test_adv_fgsm.ravel().tolist()
-
-    count = 0
-    for i in range(len(agg_prediction_FGSM)):
-        if agg_prediction_FGSM[i] == y_test_fgsm_list[i]:
-            count += 1
-
-    print("Ensemble Accuracy: ", count / len(agg_prediction_FGSM))
-    print("")
-
-    # BIM-A prediction
-    final_list_BIM_A = list(zip(*BIM_A_prediction_result))
-    print(final_list_BIM_A)
-
-    agg_prediction_BIM_A = []
-    for i in range(len(final_list_BIM_A)):
-        t = final_list_BIM_A[i]
-        # m = mode(t)
-        if (sum(list(t)) / len(list(t))) >= 0.50:
-            m = 1
-        else:
-            m = 0
-        agg_prediction_BIM_A.append(m)
-
-    print("Ensemble prediction:")
-    print(agg_prediction_BIM_A)
-
-    print("Test:")
-    print(y_test_adv_bim_a.ravel().tolist())
-    y_test_bim_a_list = y_test_adv_bim_a.ravel().tolist()
-
-    count = 0
-    for i in range(len(agg_prediction_BIM_A)):
-        if agg_prediction_BIM_A[i] == y_test_bim_a_list[i]:
-            count += 1
-
-    print("Ensemble Accuracy: ", count / len(agg_prediction_BIM_A))
-    print("")
-
-    # BIM-B prediction
-    final_list_BIM_B = list(zip(*BIM_B_prediction_result))
-    print(final_list_BIM_B)
-
-    agg_prediction_BIM_B = []
-    for i in range(len(final_list_BIM_B)):
-        t = final_list_BIM_B[i]
-        # m = mode(t)
-        if (sum(list(t)) / len(list(t))) >= 0.50:
-            m = 1
-        else:
-            m = 0
-        agg_prediction_BIM_B.append(m)
-
-    print("Ensemble prediction:")
-    print(agg_prediction_BIM_B)
-
-    print("Test:")
-    print(y_test_adv_bim_b.ravel().tolist())
-    y_test_bim_b_list = y_test_adv_bim_b.ravel().tolist()
-
-    count = 0
-    for i in range(len(agg_prediction_BIM_B)):
-        if agg_prediction_BIM_B[i] == y_test_bim_b_list[i]:
-            count += 1
-
-    print("Ensemble Accuracy: ", count / len(agg_prediction_BIM_B))
-    print("")
-
-    # Deepfool prediction
-    final_list_Deepfool = list(zip(*Deepfool_prediction_result))
-    print(final_list_Deepfool)
-
-    agg_prediction_Deepfool = []
-    for i in range(len(final_list_Deepfool)):
-        t = final_list_Deepfool[i]
-        # m = mode(t)
-        if (sum(list(t)) / len(list(t))) >= 0.50:
-            m = 1
-        else:
-            m = 0
-        agg_prediction_Deepfool.append(m)
-
-    print("Ensemble prediction:")
-    print(agg_prediction_Deepfool)
-
-    print("")
-    print("Test:")
-    print(y_test_deepfool.ravel().tolist())
-    y_test_deepfool_list = y_test_deepfool.ravel().tolist()
-
-    count = 0
-    for i in range(len(agg_prediction_Deepfool)):
-        if agg_prediction_Deepfool[i] == y_test_deepfool_list[i]:
-            count += 1
-
-    print("Ensemble Accuracy: ", count / len(agg_prediction_Deepfool))

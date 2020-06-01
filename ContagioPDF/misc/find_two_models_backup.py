@@ -1,4 +1,5 @@
 import pandas as pd
+import tensorflow as tf
 
 # AttributeError: 'Tensor' object has no attribute 'numpy'
 # input_shape = input_shape.numpy()
@@ -8,10 +9,16 @@ import pandas as pd
 # tf.executing_eagerly()
 import keras
 from os import path
-from keras.layers import Dense, Dropout, Activation
+import pickle, sys
+from keras.layers import Input, Dense, Dropout, Activation
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 import numpy as np
+import pprint as pprint
+from keras import backend as K
+import random
+from art.attacks import FastGradientMethod
+from art.classifiers import KerasClassifier
 
 # tf.enable_eager_execution(
 #     config=None,
@@ -27,12 +34,81 @@ import csv
 from hyperopt import fmin
 from timeit import default_timer as timer
 from hyperopt import STATUS_OK
-from misc.attack import load_dataset
-import pickle
 
-file_path = "../data/ContagioPDF/ConsolidateData.csv"
-out_file = 'dl_trials_1.csv'
-MAX_EVALS = 500
+file_path = "../../data/ContagioPDF/ConsolidateData.csv"
+out_file = '../dl_trials_2.csv'
+MAX_EVALS = 50
+# N_FOLDS = 10
+# input_shape = 135
+
+def load_dataset(file_path):
+    df = pd.read_csv(file_path, encoding='utf8', low_memory=False)
+    df = df.drop(['filename'], axis=1)
+    df.columns = df.columns.str.lstrip()
+
+    print(df.shape)  # (27205, 136)
+    print(df.dtypes)
+    print(df.head())
+    print(df.describe())
+    # print(list(df.Label.unique()))
+    print(df['class'].value_counts())
+    print(df['class'].isnull().sum())
+
+    df = df.dropna()
+    df = df.reset_index(drop=True)
+    print(df.shape)  # (27205, 136)
+
+    print(df.select_dtypes(exclude=['int', 'float']))
+
+    df['class'] = df['class'].astype(str).map({'False': 0, 'True': 1})
+    df['box_other_only'] = df['box_other_only'].astype(str).map({'False': 0, 'True': 1})
+    df['pdfid_mismatch'] = df['pdfid_mismatch'].astype(str).map({'False': 0, 'True': 1})
+
+    # print(df.select_dtypes(exclude=['int', 'float']))
+    print(df['class'].value_counts())
+    print(df['class'].dtypes)
+    print(df['box_other_only'].dtypes)
+    print(df['pdfid_mismatch'].dtypes)
+
+    df = df.drop_duplicates()
+    print(df.shape)  # (22525, 136)
+
+    df.to_pickle("./saved_dataframe.pkl")
+    return df
+
+
+def create_model(input_shape):
+    config = tf.compat.v1.ConfigProto(device_count={'GPU': 1, 'CPU': 8})
+    sess = tf.compat.v1.Session(config=config)
+    tf.compat.v1.keras.backend.set_session(sess)
+
+    classifier = keras.Sequential()
+    # dropout to avoid overfitting
+    layers = [
+        Dense(X_train.shape[1], input_shape=(input_shape,)),
+        Activation('relu'),
+        Dropout(0.2),
+        Dense(64),
+        Activation('relu'),
+        Dropout(0.2),
+        Dense(32),
+        Activation('relu'),
+        Dropout(0.2),
+        Dense(16),
+        Activation('relu'),
+        Dropout(0.2),
+        Dense(1),
+        Activation('sigmoid')
+    ]
+
+    for layer in layers:
+        classifier.add(layer)
+
+    classifier.compile(optimizer='adam',
+                       loss='binary_crossentropy',
+                       metrics=['accuracy'])
+
+    return classifier
 
 
 def dnn_model(params, input_shape):
@@ -73,22 +149,7 @@ def dnn_model(params, input_shape):
     for layer in layers:
         classifier.add(layer)
 
-    if params['optimizer'] == "Adadelta":
-        optimizer = keras.optimizers.Adadelta(learning_rate=params['learning_rate'])
-    elif params['optimizer'] == "Adagrad":
-        optimizer = keras.optimizers.Adagrad(learning_rate=params['learning_rate'])
-    elif params['optimizer'] == "Adam":
-        optimizer = keras.optimizers.Adam(learning_rate=params['learning_rate'])
-    elif params['optimizer'] == "Adamax":
-        optimizer = keras.optimizers.Adamax(learning_rate=params['learning_rate'])
-    elif params['optimizer'] == "NAdam":
-        optimizer = keras.optimizers.Nadam(learning_rate=params['learning_rate'])
-    elif params['optimizer'] == "RMSprop":
-        optimizer = keras.optimizers.RMSprop(learning_rate=params['learning_rate'])
-    elif params['optimizer'] == "SGD":
-        optimizer = keras.optimizers.SGD(learning_rate=params['learning_rate'])
-
-    classifier.compile(optimizer=optimizer,
+    classifier.compile(optimizer=params['optimizer'],
                        loss='binary_crossentropy',
                        metrics=['accuracy'])
 
@@ -139,7 +200,6 @@ def dnn_model2(params, input_shape):
 
     return classifier
 
-
 # deep learning optimization using bayesian optimization
 
 def objective(params, ):
@@ -155,14 +215,11 @@ def objective(params, ):
     params['drop_out'] = float(params['drop_out'])
 
     start = timer()
-    classifier = dnn_model(params, input_shape)
-    classifier.fit(X_train, y_train, batch_size=int(params['batch_size']), epochs=int(params['num_epochs']))
-    acc_results = classifier.evaluate(x=X_test, y=y_test, verbose=0)[1]
-
+    classifier = dnn_model2(params, input_shape)
+    classifier.fit(X_train, y_train, batch_size=32, epochs=1)
     # save to pickles
-    pickle_model_index = ITERATION
-    pickle_model_file = "./pickles/bayesOpt_nn_model_" + str(pickle_model_index) + ".pkl"
-    pickle.dump(classifier, open(pickle_model_file, 'wb'))
+
+    acc_results = classifier.evaluate(x=X_test, y=y_test, verbose=0)[5]
 
     run_time = timer() - start
 
@@ -188,25 +245,22 @@ space = {
     #                                      ['deserialize', 'elu', 'exponential', 'get', 'hard_sigmoid', 'linear', 'relu',
     #                                       'selu', 'serialize', 'sigmoid', 'softmax', 'softplus', 'softsign', 'tanh']),
     'hidden_layer_activation': hp.choice('hidden_layer_activation',
-                                         ['elu', 'relu', 'selu', 'sigmoid', 'softmax', 'tanh', 'hard_sigmoid',
-                                          'softplus', 'softsign', 'linear', 'exponential']),
+                                         ['elu', 'relu', 'selu', 'sigmoid', 'softmax', 'tanh']),
     'output_layer_activation': hp.choice('output_layer_activation',
-                                         ['elu', 'relu', 'selu', 'sigmoid', 'softmax', 'tanh', 'hard_sigmoid',
-                                          'softplus', 'softsign', 'linear', 'exponential']),
+                                         ['elu', 'relu', 'selu', 'sigmoid', 'softmax', 'tanh']),
     'first_layer_dense': hp.quniform('first_layer_dense', 30, 150, 1),
     'second_layer_dense': hp.quniform('second_layer_dense', 30, 50, 1),
     'third_layer_dense': hp.quniform('third_layer_dense', 10, 32, 1),
-    'drop_out': hp.uniform('drop_out', 0.0, 0.5),
-    'optimizer': hp.choice('optimizer', ['Adadelta', 'Adagrad', 'Adam', 'Adamax', 'NAdam', 'RMSprop', 'SGD']),
-    'batch_size': hp.choice('batch_size', [16, 32, 64, 128]),
-    'num_epochs': hp.quniform('num_epochs', 5, 20, 1),
-    'learning_rate': hp.choice('learning_rate', [0.001, 0.01, 0.1])
+    'drop_out': hp.quniform('drop_out', 0.0, 0.5, 0.1),
+    'optimizer': hp.choice('optimizer', ['Adadelta', 'Adagrad', 'Adam', 'Adamax', 'NAdam', 'RMSprop', 'SGD'])
 }
+
+# batch_size, epochs
 
 if __name__ == "__main__":
 
-    if path.exists("saved_dataframe.pkl"):
-        df = pd.read_pickle("./saved_dataframe.pkl")
+    if path.exists("../../CSE-CIC-IDS2018/saved_dataframe.pkl"):
+        df = pd.read_pickle("../../CIC-IDS-2017/saved_dataframe.pkl")
     else:
         df = load_dataset(file_path)
 
@@ -215,11 +269,7 @@ if __name__ == "__main__":
     X = df.drop(['class'], axis=1)
     y = df['class']
 
-    # train: 0.6, val: 0.2, test: 0.2
     X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.2, random_state=42)
-
-    # split into training and validation dataset
-    # X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, stratify=y, test_size=0.25, random_state=42)
 
     print("Data shapes", X_train.shape, X_test.shape, y_train.shape, y_test.shape)
     print("Data types", type(X_train), type(X_test), type(y_train), type(y_test))
@@ -252,7 +302,8 @@ if __name__ == "__main__":
     sample_space = sample(space)
     print(sample_space)
 
-    # optimization algorithm: Tree Parzen Estimator
+    # optimization algorithm
+    # Tree Parzen Estimator
     # the method for constructing the surrogate function and
     # choosing the next hyperparameters to evaluate.
     tpe_algorithm = tpe.suggest
@@ -278,11 +329,12 @@ if __name__ == "__main__":
     best = fmin(fn=objective, space=space, algo=tpe.suggest,
                 max_evals=MAX_EVALS, trials=bayes_trials, rstate=np.random.RandomState(50))
 
+
     # Sort the trials with lowest loss (highest AUC) first
     bayes_trials_results = sorted(bayes_trials.results, key=lambda x: x['loss'])
     print(bayes_trials_results[:2])
 
-    results = pd.read_csv('dl_trials_1.csv')
+    results = pd.read_csv('../dl_trials_2.csv')
 
     # Sort with best scores on top and reset index for slicing
     results.sort_values('loss', ascending=True, inplace=True)

@@ -68,11 +68,9 @@ if __name__ == "__main__":
     plt.xlabel("Distance")
     plt.ylabel('Accuracy under attacks.')
     plt.legend()
-    plt.axhline(y=0.9921, color='r', linestyle='--')
-    plt.axhline(y=0.60, color='k', linestyle='--')
-    plt.axvline(x=0.50, color='b', linestyle='--')
-    plt.annotate("Best model", (0.0, 0.6), xycoords='data',
-         xytext=(0.0, 0.8), arrowprops=dict(arrowstyle='->'))
+    plt.axhline(y=0.9921, color='r', linestyle='-')
+    plt.annotate("Best model", (0.0, 0.3), xycoords='data',
+         xytext=(0.0, 0.1), arrowprops=dict(arrowstyle='->'))
 
     plt.subplot(222)
     plt.scatter(distance, bim_a, color='b', alpha=0.3, edgecolors='white', label='BIM-A')
@@ -80,10 +78,8 @@ if __name__ == "__main__":
     plt.xlabel("Distance")
     plt.ylabel('Accuracy under attacks.')
     plt.legend()
-    plt.axhline(y=0.9921, color='r', linestyle='--')
-    plt.axhline(y=0.28, color='k', linestyle='--')
-    plt.axvline(x=0.50, color='b', linestyle='--')
-    plt.annotate("Best model", (0.0, 0.28), xycoords='data',
+    plt.axhline(y=0.9921, color='r', linestyle='-')
+    plt.annotate("Best model", (0.0, 0.1), xycoords='data',
                  xytext=(0.0, 0.8), arrowprops=dict(arrowstyle='->'))
 
     plt.subplot(223)
@@ -97,11 +93,9 @@ if __name__ == "__main__":
     plt.xlabel("Distance")
     plt.ylabel('Accuracy under attacks.')
     plt.legend()
-    plt.axhline(y=0.9921, color='r', linestyle='--')
-    plt.axhline(y=0.46, color='k', linestyle='--')
-    plt.axvline(x=0.50, color='b', linestyle='--')
-    plt.annotate("Best model", (0.0, 0.50), xycoords='data',
-                 xytext=(0.0, 0.8), arrowprops=dict(arrowstyle='->'))
+    plt.axhline(y=0.9921, color='r', linestyle='-')
+    plt.annotate("Best model", (0.0, 0.4), xycoords='data',
+                 xytext=(0.0, 0.6), arrowprops=dict(arrowstyle='->'))
 
     plt.subplot(224)
     plt.scatter(distance, deepfool, color='y', alpha=0.3, edgecolors='white', label='Deepfool')
@@ -114,13 +108,10 @@ if __name__ == "__main__":
     plt.xlabel("Distance")
     plt.ylabel('Accuracy under attacks.')
     plt.legend()
-    plt.axhline(y=0.9921, color='r', linestyle='--')
-    plt.axhline(y=0.84, color='k', linestyle='--')
-    plt.axvline(x=0.50, color='b', linestyle='--')
-    plt.annotate("Best model", (0.0, 0.84), xycoords='data',
+    plt.annotate("Best model", (0.0, 0.7), xycoords='data',
                  xytext=(0.0, 0.3), arrowprops=dict(arrowstyle='->'))
 
-
+    plt.axhline(y=0.9921, color='r', linestyle='-')
 
     # plt.subplot(224)
     # plt.scatter(distance, loss, color='indigo', alpha=0.3, edgecolors='white', label='Loss')

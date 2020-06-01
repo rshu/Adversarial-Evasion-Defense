@@ -9,7 +9,7 @@ import numpy as np
 import random
 import pandas as pd
 
-file_path = "../data/ContagioPDF/ConsolidateData.csv"
+file_path = "../../data/ContagioPDF/ConsolidateData.csv"
 
 
 def load_dataset(file_path):
@@ -56,7 +56,7 @@ def create_model(input_shape):
     classifier = keras.Sequential()
     # dropout to avoid overfitting
     layers = [
-        Dense(X_train.shape[1], input_shape=(input_shape,)),
+        Dense(input_shape, input_shape=(input_shape,)),
         Activation('relu'),
         Dropout(0.2),
         Dense(64),
@@ -79,6 +79,37 @@ def create_model(input_shape):
     return classifier
 
 
+def create_model2(input_shape):
+    # config = tf.compat.v1.ConfigProto(device_count={'GPU': 1, 'CPU': 8})
+    # # sess = tf.compat.v1.Session(config=config)
+    # # tf.compat.v1.keras.backend.set_session(sess)
+
+    classifier = keras.Sequential()
+    # dropout to avoid overfitting
+    layers = [
+        Dense(X_train.shape[1], input_shape=(input_shape,)),
+        Activation('elu'),
+        Dropout(0.1),
+        Dense(127),
+        Activation('relu'),
+        Dropout(0.1),
+        Dense(35),
+        Activation('relu'),
+        Dropout(0.1),
+        Dense(12),
+        Activation('relu'),
+        Dropout(0.1),
+        Dense(1),
+        Activation('sigmoid')
+    ]
+
+    for layer in layers:
+        classifier.add(layer)
+
+    classifier.compile(optimizer='Adadelta', loss='binary_crossentropy', metrics=['accuracy'])
+    return classifier
+
+
 @tf.function
 def adversarial_pattern(X_train_each, y_train_each, model):
     X_train_each = tf.cast(X_train_each, tf.float32)
@@ -93,7 +124,7 @@ def adversarial_pattern(X_train_each, y_train_each, model):
     return signed_grad
 
 
-def fgsm_attack(model, X_train, y_train, percentage=0.1, epsilon=0.2, clip_min=0.0, clip_max=1.0):
+def fgsm_attack(model, X_train, y_train, epsilon=0.2, clip_min=0.0, clip_max=1.0):
     """Create FGSM attack points for each row of x"""
 
     # determine how many dataset to be perturbed
@@ -213,8 +244,8 @@ def c_and_w_attack():
 
 if __name__ == "__main__":
 
-    if path.exists("saved_dataframe.pkl"):
-        df = pd.read_pickle("./saved_dataframe.pkl")
+    if path.exists("../../CICAndMal2017/saved_dataframe.pkl"):
+        df = pd.read_pickle("../../CSE-CIC-IDS2018/saved_dataframe.pkl")
     else:
         df = load_dataset(file_path)
 
@@ -225,16 +256,16 @@ if __name__ == "__main__":
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.2, random_state=42)
 
-    print("Data shapes", X_train.shape, X_test.shape, y_train.shape, y_test.shape)
-    print("Data types", type(X_train), type(X_test), type(y_train), type(y_test))
+    # print("Data shapes", X_train.shape, X_test.shape, y_train.shape, y_test.shape)
+    # print("Data types", type(X_train), type(X_test), type(y_train), type(y_test))
 
     X_train = X_train.to_numpy()
     X_test = X_test.to_numpy()
     y_train = y_train.to_numpy()
     y_test = y_test.to_numpy()
 
-    print("Data shapes", X_train.shape, X_test.shape, y_train.shape, y_test.shape)
-    print("Data types", type(X_train), type(X_test), type(y_train), type(y_test))
+    # print("Data shapes", X_train.shape, X_test.shape, y_train.shape, y_test.shape)
+    # print("Data types", type(X_train), type(X_test), type(y_train), type(y_test))
 
     # Pass -1 as the value, and NumPy will calculate this number for you.
     y_train = y_train.reshape((-1, 1))
@@ -247,7 +278,7 @@ if __name__ == "__main__":
     scaler2 = preprocessing.StandardScaler().fit(X_test)
     X_test = scaler2.transform(X_test)
 
-    print("Data shapes", X_train.shape, X_test.shape, y_train.shape, y_test.shape)
+    # print("Data shapes", X_train.shape, X_test.shape, y_train.shape, y_test.shape)
 
     # creating model with original dataset
     input_shape = X_train.shape[1]
@@ -260,25 +291,43 @@ if __name__ == "__main__":
     print("Base accuracy on original dataset:", model.evaluate(x=X_test, y=y_test, verbose=0))
 
     # fgsm attack on training dataset
-    X_train_adv_fgsm, y_train_adv_fgsm = fgsm_attack(model, X_train, y_train, epsilon=0.5, clip_min=0.0,
-                                                     clip_max=1.0)
+    X_test_adv_fgsm, y_test_adv_fgsm = fgsm_attack(model, X_test, y_test, epsilon=0.1, clip_min=0.0,
+                                                   clip_max=1.0)
 
     model2 = create_model(input_shape)
-    model2.fit(X_train_adv_fgsm, y_train_adv_fgsm, batch_size=32, epochs=1)
-    print("Base accuracy of fgsm on adversarial dataset:", model2.evaluate(x=X_test, y=y_test, verbose=0))
+    model2.fit(X_train, y_train, batch_size=32, epochs=1)
+    print("Base accuracy of fgsm of model A on adversarial dataset:",
+          model2.evaluate(x=X_test_adv_fgsm, y=y_test_adv_fgsm, verbose=0))
+
+    model2_b = create_model2(input_shape)
+    model2_b.fit(X_train, y_train, batch_size=32, epochs=1)
+    print("Base accuracy of fgsm of model B on adversarial dataset:",
+          model2_b.evaluate(x=X_test_adv_fgsm, y=y_test_adv_fgsm, verbose=0))
 
     # BIM A attack
-    X_train_adv_bim_a, y_train_adv_bim_a = bim_a_attack(model, X_train, y_train, epsilon=0.5, clip_min=0.0,
-                                                        clip_max=1.0, iterations=10)
+    X_test_adv_bim_a, y_test_adv_bim_a = bim_a_attack(model, X_test, y_test, epsilon=0.2, clip_min=0.0,
+                                                      clip_max=1.0, iterations=10)
 
     model3 = create_model(input_shape)
-    model3.fit(X_train_adv_bim_a, y_train_adv_bim_a, batch_size=32, epochs=1)
-    print("Base accuracy of BIM A on adversarial dataset:", model3.evaluate(x=X_test, y=y_test, verbose=0))
+    model3.fit(X_train, y_train, batch_size=32, epochs=1)
+    print("Base accuracy of BIM A of model A on adversarial dataset:",
+          model3.evaluate(x=X_test_adv_bim_a, y=y_test_adv_bim_a, verbose=0))
+
+    model3_b = create_model2(input_shape)
+    model3_b.fit(X_train, y_train, batch_size=32, epochs=1)
+    print("Base accuracy of BIM A of model B on adversarial dataset:",
+          model3_b.evaluate(x=X_test_adv_bim_a, y=y_test_adv_bim_a, verbose=0))
 
     # BIM B attack
-    X_train_adv_bim_b, y_train_adv_bim_b = bim_b_attack(model, X_train, y_train, epsilon=0.5, clip_min=0.0,
-                                                        clip_max=1.0, iterations=10)
+    X_test_adv_bim_b, y_test_adv_bim_b = bim_b_attack(model, X_test, y_test, epsilon=0.3, clip_min=0.0,
+                                                      clip_max=1.0, iterations=10)
 
     model4 = create_model(input_shape)
-    model4.fit(X_train_adv_bim_b, y_train_adv_bim_b, batch_size=32, epochs=1)
-    print("Base accuracy of BIM B on adversarial dataset:", model4.evaluate(x=X_test, y=y_test, verbose=0))
+    model4.fit(X_train, y_train, batch_size=32, epochs=1)
+    print("Base accuracy of BIM B of Model A on adversarial dataset:",
+          model4.evaluate(x=X_test_adv_bim_b, y=y_test_adv_bim_b, verbose=0))
+
+    model4_b = create_model2(input_shape)
+    model4_b.fit(X_train, y_train, batch_size=32, epochs=1)
+    print("Base accuracy of BIM B of Model Bon adversarial dataset:",
+          model4_b.evaluate(x=X_test_adv_bim_b, y=y_test_adv_bim_b, verbose=0))

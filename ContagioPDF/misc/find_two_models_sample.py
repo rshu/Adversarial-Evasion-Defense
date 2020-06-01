@@ -1,24 +1,10 @@
 import pandas as pd
-
-# AttributeError: 'Tensor' object has no attribute 'numpy'
-# input_shape = input_shape.numpy()
-# import tensorflow.compat.v1 as tf
-
-# tf.compat.v1.disable_eager_execution()
-# tf.executing_eagerly()
 import keras
 from os import path
 from keras.layers import Dense, Dropout, Activation
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 import numpy as np
-
-# tf.enable_eager_execution(
-#     config=None,
-#     device_policy=None,
-#     execution_mode=None
-# )
-
 from hyperopt import hp
 from hyperopt.pyll.stochastic import sample
 from hyperopt import Trials
@@ -30,18 +16,14 @@ from hyperopt import STATUS_OK
 from misc.attack import load_dataset
 import pickle
 
-file_path = "../data/ContagioPDF/ConsolidateData.csv"
-out_file = 'dl_trials_1.csv'
+file_path = "../../data/ContagioPDF/ConsolidateData.csv"
+out_file = 'dl_trials_sample.csv'
 MAX_EVALS = 500
 
 
 def dnn_model(params, input_shape):
-    # config = tf.compat.v1.ConfigProto(device_count={'GPU': 1, 'CPU': 8})
-    # sess = tf.compat.v1.Session(config=config)
-    # tf.compat.v1.keras.backend.set_session(sess)
-
     classifier = keras.Sequential()
-    # dropout to avoid overfitting
+
     layers = [
         Dense(input_shape, input_shape=(input_shape,)),
         Activation(params['hidden_layer_activation']),
@@ -57,17 +39,6 @@ def dnn_model(params, input_shape):
         Dropout(params['drop_out']),
         Dense(1),
         Activation(params['output_layer_activation'])
-    ]
-
-    METRICS = [
-        keras.metrics.TruePositives(name='tp'),
-        keras.metrics.FalsePositives(name='fp'),
-        keras.metrics.TrueNegatives(name='tn'),
-        keras.metrics.FalseNegatives(name='fn'),
-        keras.metrics.BinaryAccuracy(name='accuracy'),
-        keras.metrics.Precision(name='precision'),
-        keras.metrics.Recall(name='recall'),
-        keras.metrics.AUC(name='auc'),
     ]
 
     for layer in layers:
@@ -95,53 +66,7 @@ def dnn_model(params, input_shape):
     return classifier
 
 
-def dnn_model2(params, input_shape):
-    # config = tf.compat.v1.ConfigProto(device_count={'GPU': 1, 'CPU': 8})
-    # sess = tf.compat.v1.Session(config=config)
-    # tf.compat.v1.keras.backend.set_session(sess)
-
-    classifier = keras.Sequential()
-    # dropout to avoid overfitting
-    layers = [
-        Dense(input_shape, input_shape=(input_shape,)),
-        Activation(params['hidden_layer_activation']),
-        Dropout(params['drop_out']),
-        Dense(params['first_layer_dense']),
-        Activation(params['hidden_layer_activation']),
-        Dropout(params['drop_out']),
-        Dense(params['second_layer_dense']),
-        Activation(params['hidden_layer_activation']),
-        Dropout(params['drop_out']),
-        Dense(params['third_layer_dense']),
-        Activation(params['hidden_layer_activation']),
-        Dropout(params['drop_out']),
-        Dense(1),
-        Activation(params['output_layer_activation'])
-    ]
-
-    METRICS = [
-        keras.metrics.TruePositives(name='tp'),
-        keras.metrics.FalsePositives(name='fp'),
-        keras.metrics.TrueNegatives(name='tn'),
-        keras.metrics.FalseNegatives(name='fn'),
-        keras.metrics.BinaryAccuracy(name='accuracy'),
-        keras.metrics.Precision(name='precision'),
-        keras.metrics.Recall(name='recall'),
-        keras.metrics.AUC(name='auc'),
-    ]
-
-    for layer in layers:
-        classifier.add(layer)
-
-    classifier.compile(optimizer=params['optimizer'],
-                       loss='binary_crossentropy',
-                       metrics=METRICS)
-
-    return classifier
-
-
 # deep learning optimization using bayesian optimization
-
 def objective(params, ):
     # Keep track of evals
     global ITERATION
@@ -161,7 +86,7 @@ def objective(params, ):
 
     # save to pickles
     pickle_model_index = ITERATION
-    pickle_model_file = "./pickles/bayesOpt_nn_model_" + str(pickle_model_index) + ".pkl"
+    pickle_model_file = "./sample_pickles/bayesOpt_nn_model_" + str(pickle_model_index) + ".pkl"
     pickle.dump(classifier, open(pickle_model_file, 'wb'))
 
     run_time = timer() - start
@@ -205,15 +130,16 @@ space = {
 
 if __name__ == "__main__":
 
-    if path.exists("saved_dataframe.pkl"):
-        df = pd.read_pickle("./saved_dataframe.pkl")
+    if path.exists("../../CICAndMal2017/saved_dataframe.pkl"):
+        df = pd.read_pickle("../../CSE-CIC-IDS2018/saved_dataframe.pkl")
     else:
         df = load_dataset(file_path)
 
-    # print(df)
+    df_sample = df.sample(frac=0.2)
+    df_sample.to_pickle("./saved_dataframe_sample.pkl")
 
-    X = df.drop(['class'], axis=1)
-    y = df['class']
+    X = df_sample.drop(['class'], axis=1)
+    y = df_sample['class']
 
     # train: 0.6, val: 0.2, test: 0.2
     X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.2, random_state=42)
@@ -221,16 +147,10 @@ if __name__ == "__main__":
     # split into training and validation dataset
     # X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, stratify=y, test_size=0.25, random_state=42)
 
-    print("Data shapes", X_train.shape, X_test.shape, y_train.shape, y_test.shape)
-    print("Data types", type(X_train), type(X_test), type(y_train), type(y_test))
-
     X_train = X_train.to_numpy()
     X_test = X_test.to_numpy()
     y_train = y_train.to_numpy()
     y_test = y_test.to_numpy()
-
-    print("Data shapes", X_train.shape, X_test.shape, y_train.shape, y_test.shape)
-    print("Data types", type(X_train), type(X_test), type(y_train), type(y_test))
 
     # Pass -1 as the value, and NumPy will calculate this number for you.
     y_train = y_train.reshape((-1, 1))
@@ -239,11 +159,8 @@ if __name__ == "__main__":
     # pre-processing
     scaler1 = preprocessing.StandardScaler().fit(X_train)
     X_train = scaler1.transform(X_train)
-
     scaler2 = preprocessing.StandardScaler().fit(X_test)
     X_test = scaler2.transform(X_test)
-
-    print("Data shapes", X_train.shape, X_test.shape, y_train.shape, y_test.shape)
 
     # creating model with original dataset
     input_shape = X_train.shape[1]
@@ -282,16 +199,9 @@ if __name__ == "__main__":
     bayes_trials_results = sorted(bayes_trials.results, key=lambda x: x['loss'])
     print(bayes_trials_results[:2])
 
-    results = pd.read_csv('dl_trials_1.csv')
+    results = pd.read_csv('dl_trials_sample.csv')
 
     # Sort with best scores on top and reset index for slicing
     results.sort_values('loss', ascending=True, inplace=True)
     results.reset_index(inplace=True, drop=True)
     print(results.head())
-
-    # without optimization
-    # model = create_model(input_shape)
-    # print(model.summary())
-    #
-    # model.fit(X_train, y_train, batch_size=32, epochs=1)
-    # print("Base accuracy on original dataset:", model.evaluate(x=X_test, y=y_test, verbose=0))

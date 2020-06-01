@@ -30,7 +30,7 @@ import gc
 #     execution_mode=None
 # )
 
-file_path = "../data/ContagioPDF/ConsolidateData.csv"
+file_path = "../../data/ContagioPDF/ConsolidateData.csv"
 
 
 def load_dataset(file_path):
@@ -243,8 +243,8 @@ def c_and_w_attack():
 
 if __name__ == "__main__":
 
-    if path.exists("saved_dataframe.pkl"):
-        df = pd.read_pickle("./saved_dataframe.pkl")
+    if path.exists("../../CICAndMal2017/saved_dataframe.pkl"):
+        df = pd.read_pickle("../../CSE-CIC-IDS2018/saved_dataframe.pkl")
     else:
         df = load_dataset(file_path)
 

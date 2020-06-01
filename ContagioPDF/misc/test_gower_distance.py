@@ -16,7 +16,7 @@ pd.set_option('display.max_columns', 50)
 #
 # print(gower.gower_matrix(Xd, Yd, cat_features=[False, True, True, False, False, False]))
 
-df = pd.read_csv('dl_trials_1.csv')
+df = pd.read_csv('../../CIC-IDS-2017/dl_trials_1.csv')
 # print(df.shape)
 
 # Sort with best scores on top and reset index for slicing
@@ -39,13 +39,16 @@ for i in range(df.shape[0]):
     tmp_list.append(params_dict['output_layer_activation'])
     tmp_list.append(params_dict['second_layer_dense'])
     tmp_list.append(params_dict['third_layer_dense'])
+    tmp_list.append(params_dict['batch_size'])
+    tmp_list.append(params_dict['num_epochs'])
     # print(tmp_list)
     data.append(tmp_list)
 
 print(data)
 
 params_dataframe = pd.DataFrame(data, columns=['drop_out', 'first_layer_dense', 'hidden_layer_activation', 'optimizer',
-                                               'output_layer_activation', 'second_layer_dense', 'third_layer_dense'])
+                                               'output_layer_activation', 'second_layer_dense', 'third_layer_dense',
+                                               'batch_size', 'num_epochs'])
 
 print(params_dataframe)
 
@@ -55,12 +58,10 @@ best_result = df.iloc[0]
 for i in range(df.shape[0]):
     if df.iloc[i]['loss'] - best_result['loss'] <= loss_epsilon:
         # print(i)
-        candidate_params = params_dataframe.iloc[i:i+1, :]
-        print(gower.gower_matrix(params_dataframe, candidate_params, cat_features=[False, False, True, True, True, False, False])[0][0])
-
-
-
+        candidate_params = params_dataframe.iloc[i:i + 1, :]
+        print(gower.gower_matrix(params_dataframe, candidate_params,
+                                 cat_features=[False, False, True, True, True, False, False,
+                                               True, False])[0][0])
 
 # Yd = params_dataframe.iloc[1:2, :]
 # print(gower.gower_matrix(params_dataframe, Yd, cat_features=[False, False, True, True, True, False, False]))
-

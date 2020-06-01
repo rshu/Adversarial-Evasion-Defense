@@ -92,7 +92,7 @@ def build_models(X_train, y_train, X_test, y_test):
     classifier.fit(X_train, y_train, batch_size=32, epochs=10)
 
     # save the model
-    nn_model_pickel_file = 'saved_nn_model.pkl'
+    nn_model_pickel_file = '../../CIC-IDS-2017/saved_nn_model.pkl'
     pickle.dump(classifier, open(nn_model_pickel_file, 'wb'))
 
     # load the model from disk
@@ -182,7 +182,7 @@ def fgsm_pdf(X_train, y_train, eps=0.3, clip_min=0.0, clip_max=1.0):
 
     print(tf.executing_eagerly())
 
-    model = pickle.load(open('./saved_nn_model.pkl', 'rb'))
+    model = pickle.load(open('../../CIC-IDS-2017/saved_nn_model.pkl', 'rb'))
 
     X_train_firstrow = X_train.iloc[0]
     y_train_firstrow = y_train.iloc[0]
@@ -248,7 +248,7 @@ def fgsm_pdf(X_train, y_train, eps=0.3, clip_min=0.0, clip_max=1.0):
     print(X_train)
     print("X_train type", type(X_train))
 
-    model = pickle.load(open('./saved_nn_model.pkl', 'rb'))
+    model = pickle.load(open('../../CIC-IDS-2017/saved_nn_model.pkl', 'rb'))
     print(model)
 
     loss_object = tf.keras.losses.BinaryCrossentropy()
@@ -275,7 +275,7 @@ def fgsm_pdf(X_train, y_train, eps=0.3, clip_min=0.0, clip_max=1.0):
     print("y_train_array shape:", y_train_array.shape)
     y_train_tensor = tf.convert_to_tensor(y_train_array, dtype=tf.int8)
 
-    model = pickle.load(open('./saved_nn_model.pkl', 'rb'))
+    model = pickle.load(open('../../CIC-IDS-2017/saved_nn_model.pkl', 'rb'))
     print(model(X_train_tensor))
     # X_train_adv = fgm(model, X_train_tensor, y_train, eps=0.01, epochs=1, sign=True, clip_min=0.0, clip_max=1.0)
     loss_object = tf.keras.losses.BinaryCrossentropy()
@@ -295,10 +295,10 @@ def fgsm_pdf(X_train, y_train, eps=0.3, clip_min=0.0, clip_max=1.0):
 
 
 if __name__ == "__main__":
-    file_path = "../data/ContagioPDF/ConsolidateData.csv"
+    file_path = "../../data/ContagioPDF/ConsolidateData.csv"
 
-    if path.exists("saved_dataframe.pkl"):
-        df = pd.read_pickle("./saved_dataframe.pkl")
+    if path.exists("../../CSE-CIC-IDS2018/saved_dataframe.pkl"):
+        df = pd.read_pickle("../../CIC-IDS-2017/saved_dataframe.pkl")
     else:
         df = load_dataset(file_path)
 
