@@ -3,7 +3,7 @@ from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Dense, Activation, Dropout
 import pickle
 import keras
-
+import logging
 
 def baseline_model(X_train, X_test, y_train, y_test):
     # TensorFlow to automatically choose an existing and supported device
@@ -56,8 +56,9 @@ def baseline_model(X_train, X_test, y_train, y_test):
     # print("evaluation...")
     # print("")
     loss, acc, precision, recall, auc, tp, fp, tn, fn = classifier.evaluate(X_test, y_test, verbose=2)
-    print("loss: " + str(loss))
-    print("accuracy: " + str(acc))
-    print("precision: " + str(precision) + " recall: " + str(recall) + " auc: " + str(auc))
-    print("tp: " + str(tp) + " fp: " + str(fp) + " tn: " + str(tn) + " fn: " + str(fn))
+    logging.info('---------------Baseline Performance---------------')
+    logging.info("loss: " + str(loss))
+    logging.info("accuracy: " + str(acc))
+    logging.info("precision: " + str(precision) + " recall: " + str(recall) + " auc: " + str(auc))
+    logging.info("tp: " + str(tp) + " fp: " + str(fp) + " tn: " + str(tn) + " fn: " + str(fn))
     # print(classifier.evaluate(X_test, y_test, verbose=2))
