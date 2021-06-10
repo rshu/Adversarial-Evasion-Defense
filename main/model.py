@@ -5,6 +5,7 @@ import pickle
 import keras
 import logging
 
+
 def baseline_model(X_train, X_test, y_train, y_test):
     # TensorFlow to automatically choose an existing and supported device
     # to run the operations in case the specified one doesn't exist
@@ -56,9 +57,34 @@ def baseline_model(X_train, X_test, y_train, y_test):
     # print("evaluation...")
     # print("")
     loss, acc, precision, recall, auc, tp, fp, tn, fn = classifier.evaluate(X_test, y_test, verbose=2)
-    logging.info('---------------Baseline Performance---------------')
+    logging.info('---------------Evaluation Performance---------------')
     logging.info("loss: " + str(loss))
     logging.info("accuracy: " + str(acc))
     logging.info("precision: " + str(precision) + " recall: " + str(recall) + " auc: " + str(auc))
     logging.info("tp: " + str(tp) + " fp: " + str(fp) + " tn: " + str(tn) + " fn: " + str(fn))
     # print(classifier.evaluate(X_test, y_test, verbose=2))
+
+
+def attack_model():
+    classifier = tf.keras.Sequential()
+
+    layers = [
+        Dense(135, input_shape=(135,)),
+        Activation('relu'),
+        Dropout(0.5),
+        Dense(64),
+        Activation('relu'),
+        Dropout(0.5),
+        Dense(64),
+        Activation('relu'),
+        Dropout(0.5),
+        Dense(32),
+        Activation('relu'),
+        Dropout(0.5),
+        Dense(1),
+        Activation('sigmoid')
+    ]
+
+    for layer in layers:
+        classifier.add(layer)
+    return classifier
